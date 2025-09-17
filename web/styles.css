@@ -1,0 +1,131 @@
+/* General page setup */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: monospace;
+  background: #111;
+  color: #eee;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Headings */
+h1, h2, h3 {
+  margin: 10px;
+  color: #eee;
+}
+
+/* Buttons */
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background: #222;
+  color: #eee;
+  border: 1px solid #555;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #444;
+}
+
+/* Log box styling */
+#logBox {
+  flex: 1;
+  width: 100%;
+  background: #000;
+  padding: 10px;
+  border: 1px solid #444;
+  overflow-y: scroll;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+}
+
+/* Log levels */
+.info { color: #0f0; }
+.warn { color: #ff0; }
+.error { color: #f00; }
+
+/* Grid container for dashboards */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(4, auto);
+  gap: 10px;
+  padding: 10px;
+  width: 100%;
+  flex: 1;
+}
+
+/* Each cell in the dashboard grid */
+.cell {
+  background-color: #222;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  transition: background 0.2s;
+}
+
+.cell:hover {
+  background-color: #333;
+}
+
+/* Labels inside cells */
+.cell .name {
+  font-weight: bold;
+  font-size: 2rem; /* was 1rem */
+  color: #eee;
+}
+
+.cell .value {
+  font-size: 4rem; /* was 2rem */
+  margin: 5px 0;
+  color: #fa0;
+}
+
+.cell .unit {
+  font-size: 1.8rem; /* was 0.9rem */
+  color: #aaa;
+}
+
+/* Responsive tweaks for smaller screens */
+@media screen and (max-width: 500px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr); /* keep 2 columns on mobile */
+    grid-template-rows: auto; /* let rows adjust automatically */
+  }
+  .cell {
+    padding: 12px;
+  }
+  .cell .name {
+    font-size: 1.8rem; /* slightly smaller to fit mobile */
+  }
+  .cell .value {
+    font-size: 3.5rem; 
+  }
+  .cell .unit {
+    font-size: 1.6rem;
+  }
+}
+
+/* Scrollbar styling for log box */
+#logBox::-webkit-scrollbar {
+  width: 8px;
+}
+
+#logBox::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+#logBox::-webkit-scrollbar-track {
+  background: #111;
+}

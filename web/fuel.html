@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 Corsa Fuel Meter</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h2>Corsa Live Fuel Data</h2>
+  <div class="button-container">
+    <button onclick="location.href='comms.html'">Live Comms Data</button>
+    <button onclick="location.href='fuel.html'">Live Fuel Data</button>
+    <button onclick="location.href='debugfuel.html'">Debug Fuel Data</button>
+    <button onclick="location.href='logs.html'">ESP32 Logs</button>
+  </div>
+  <div class="grid">
+    <div class="cell" id="inst-fuel"><div class="name">Instantaneous Fuel Consumption</div><div class="value">0.0</div><div class="unit">L/100 km</div></div>
+    <div class="cell" id="avg-fuel"><div class="name">Average Fuel Consumption</div><div class="value">0.0</div><div class="unit">L/100 km</div></div>
+    <div class="cell" id="ctmp"><div class="name">Coolant Temperature</div><div class="value">0</div><div class="unit">°C</div></div>
+    <div class="cell" id="cons-fuel"><div class="name">Fuel Consumed</div><div class="value">0.00</div><div class="unit">L</div></div>
+  </div>
+    <pre id="inPageConsole"></pre>
+
+<script src="script.js"></script>
+
+</body>
+</html>

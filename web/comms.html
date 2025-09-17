@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 Corsa Fuel Meter</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h2>Corsa Live Comms Data</h2>
+  <div class="button-container">
+    <button onclick="location.href='comms.html'">Live Comms Data</button>
+    <button onclick="location.href='fuel.html'">Live Fuel Data</button>
+    <button onclick="location.href='debugfuel.html'">Debug Fuel Data</button>
+    <button onclick="location.href='logs.html'">ESP32 Logs</button>
+  </div>
+  <div class="grid">
+    <div class="cell" id="load"><div class="name">Load</div><div class="value">0</div><div class="unit">%</div></div>
+    <div class="cell" id="trtl"><div class="name">Throttle</div><div class="value">0</div><div class="unit">%</div></div>
+    <div class="cell" id="ctmp"><div class="name">Coolant Temperature</div><div class="value">0</div><div class="unit">°C</div></div>
+    <div class="cell" id="itmp"><div class="name">Intake Temperature</div><div class="value">0</div><div class="unit">°C</div></div>
+    <div class="cell" id="rpm"><div class="name">RPM</div><div class="value">0</div><div class="unit">rev/min</div></div>
+    <div class="cell" id="spd"><div class="name">Speed</div><div class="value">0</div><div class="unit">km/h</div></div>
+    <div class="cell" id="maf"><div class="name">MAF</div><div class="value">0</div><div class="unit">g/s</div></div>
+    <div class="cell" id="success"><div class="name">Attempts / Successes</div><div class="value">0/0</div><div class="unit"></div></div>
+  </div>
+    <pre id="inPageConsole"></pre>
+
+<script src="script.js"></script>
+
+</body>
+</html>
