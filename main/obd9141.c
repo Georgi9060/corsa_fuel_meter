@@ -628,8 +628,8 @@ uint8_t OBD9141_checksum(void* b, uint8_t len){
 }
 
 void OBD9141_decode_dtc(uint16_t input_bytes, uint8_t* output_string){
-    const uint8_t A =(uint8_t)(&input_bytes)[0];
-    const uint8_t B = (uint8_t)(&input_bytes)[1];
+    const uint8_t A = (input_bytes >> 8) & 0xFF;
+    const uint8_t B = input_bytes & 0xFF;
     const static char type_lookup[4] = {'P', 'C', 'B', 'U'};
     const static char digit_lookup[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 

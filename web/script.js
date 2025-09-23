@@ -78,32 +78,36 @@ ws.onmessage = (event) => {
                 pdpc: parseFloat(parts[10]),
             };
 
-            document.querySelector('#inst-fuel .value').textContent = parsed.ifl.toFixed(1);
-            document.querySelector('#avg-fuel .value').textContent  = parsed.afl.toFixed(1);
-            document.querySelector('#ctmp .value').textContent      = parsed.ctmp;
-            document.querySelector('#cons-fuel .value').textContent = parsed.cfl.toFixed(2);
-            document.querySelector('#rpm .value').textContent       = parsed.rpm;
-            document.querySelector('#spd .value').textContent       = parsed.spd;
-            document.querySelector('#pcnt-rpm .value').textContent  = parsed.prpm;
-            document.querySelector('#pcnt-isr .value').textContent  = parsed.pisr;
-            document.querySelector('#pdelta .value').textContent    = parsed.pd;
-            document.querySelector('#pdeltapc .value').textContent  = parsed.pdpc.toFixed(1);
+            document.querySelector('#inst-fuel .value').textContent     = parsed.ifl.toFixed(1);
+            document.querySelector('#avg-fuel .value').textContent      = parsed.afl.toFixed(1);
+            document.querySelector('#ctmp .value').textContent          = parsed.ctmp;
+            document.querySelector('#cons-fuel .value').textContent     = parsed.cfl.toFixed(2);
+            document.querySelector('#rpm .value').textContent           = parsed.rpm;
+            document.querySelector('#spd .value').textContent           = parsed.spd;
+            document.querySelector('#pcnt-isr .value').textContent      = parsed.pisr;
+            document.querySelector('#pcnt-rpm .value').textContent      = parsed.prpm;
+            document.querySelector('#pdelta .value').textContent        = parsed.pd;
+            document.querySelector('#avg-pwidth .value').textContent    = parsed.pdpc.toFixed(1);
             return;
         }
 
-        else if (type === 'f' && parts.length >= 5) {
+        else if (type === 'f' && parts.length >= 7) {
             // Fuel packet
             const parsed = {
                 ifl: parseFloat(parts[1]),
                 afl: parseFloat(parts[2]),
                 ctmp: +parts[3],
                 cfl: parseFloat(parts[4]),
+                fl6: parseFloat(parts[5]),
+                fl60: parseFloat(parts[6]),
             };
 
-            document.querySelector('#inst-fuel .value').textContent = parsed.ifl.toFixed(1);
-            document.querySelector('#avg-fuel .value').textContent  = parsed.afl.toFixed(1);
-            document.querySelector('#ctmp .value').textContent      = parsed.ctmp;
-            document.querySelector('#cons-fuel .value').textContent = parsed.cfl.toFixed(2);
+            document.querySelector('#inst-fuel .value').textContent    = parsed.ifl.toFixed(1);
+            document.querySelector('#avg-fuel .value').textContent     = parsed.afl.toFixed(1);
+            document.querySelector('#ctmp .value').textContent         = parsed.ctmp;
+            document.querySelector('#cons-fuel .value').textContent    = parsed.cfl.toFixed(2);
+            document.querySelector('#fuel-last-6 .value').textContent  = parsed.cfl.toFixed(1);
+            document.querySelector('#fuel-last-60 .value').textContent = parsed.cfl;
             return;
         }
     }

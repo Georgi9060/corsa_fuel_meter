@@ -23,19 +23,18 @@ void monitor_server_handle_task(void *arg) {
     }
 }
 
-float random_float_in_range(float min, float max) {
-    uint32_t r = esp_random();                  // 0 … 2^32-1
-    float norm = (float)r / (float)UINT32_MAX;  // 0.0 … 1.0
-    return min + norm * (max - min);
-}
-
 void timer_start(const char *label) {
     timer_start_time = esp_timer_get_time();
-    ESP_LOGI(label, "st: %.0f", timer_start_time / 1000.0);
+    int64_t ms_hundredths = timer_start_time / 10; // 1 unit = 0.01 ms
+    ESP_LOGI(label, "st: %lld.%02lld ms",
+             ms_hundredths / 100,   // integer
+             ms_hundredths % 100); // fraction
 }
 
 void timer_stop(const char *label) {
-    int64_t elapsed = esp_timer_get_time() - timer_start_time; // in us
-    float ms = elapsed / 1000.0;
-    ESP_LOGI(label,"%.1f ms", ms);
+    int64_t elapsed_us = esp_timer_get_time() - timer_start_time;
+    int64_t ms_hundredths = elapsed_us / 10; // 1 unit = 0.01 ms
+    ESP_LOGI(label, "elapsed: %lld.%02lld ms",
+             ms_hundredths / 100,   // integer
+             ms_hundredths % 100); // fraction
 }
