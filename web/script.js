@@ -63,7 +63,7 @@ ws.onmessage = (event) => {
             return;
         }
 
-        else if (type === 'd' && parts.length >= 11) {
+        else if (type === 'd' && parts.length >= 13) {
             // Debug fuel packet
             const parsed = {
                 ifl: parseFloat(parts[1]),
@@ -76,18 +76,23 @@ ws.onmessage = (event) => {
                 pisr: +parts[8],
                 pd: parseFloat(parts[9]),
                 pdpc: parseFloat(parts[10]),
+                cabtmp: parseFloat(parts[11]),
+                barop: parseFloat(parts[12]),
             };
 
-            document.querySelector('#inst-fuel .value').textContent     = parsed.ifl.toFixed(1);
-            document.querySelector('#avg-fuel .value').textContent      = parsed.afl.toFixed(1);
-            document.querySelector('#ctmp .value').textContent          = parsed.ctmp;
-            document.querySelector('#cons-fuel .value').textContent     = parsed.cfl.toFixed(2);
-            document.querySelector('#rpm .value').textContent           = parsed.rpm;
-            document.querySelector('#spd .value').textContent           = parsed.spd;
-            document.querySelector('#pcnt-isr .value').textContent      = parsed.pisr;
-            document.querySelector('#pcnt-rpm .value').textContent      = parsed.prpm;
-            document.querySelector('#pdelta .value').textContent        = parsed.pd;
-            document.querySelector('#avg-pwidth .value').textContent    = parsed.pdpc.toFixed(1);
+            document.querySelector('#inst-fuel .value').textContent      = parsed.ifl.toFixed(1);
+            document.querySelector('#avg-fuel .value').textContent       = parsed.afl.toFixed(1);
+            document.querySelector('#ctmp .value').textContent           = parsed.ctmp;
+            document.querySelector('#cons-fuel .value').textContent      = parsed.cfl.toFixed(2);
+            document.querySelector('#rpm .value').textContent            = parsed.rpm;
+            document.querySelector('#spd .value').textContent            = parsed.spd;
+            document.querySelector('#pcnt-isr .value').textContent       = parsed.pisr;
+            document.querySelector('#pcnt-rpm .value').textContent       = parsed.prpm;
+            document.querySelector('#pdelta .value').textContent         = parsed.pd;
+            document.querySelector('#avg-pwidth .value').textContent     = parsed.pdpc.toFixed(1);
+            document.querySelector('#cabtmp .value').textContent         = parsed.cabtmp.toFixed(1);
+            document.querySelector('#barop .value').textContent          = parsed.barop.toFixed(1);
+
             return;
         }
 

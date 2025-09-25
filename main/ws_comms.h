@@ -31,6 +31,9 @@ typedef struct __attribute__((packed)){
     uint16_t pcnt_rpm;      // [-]
     int16_t pdelta;         // [-]
     float avg_pwidth;       // [ms]
+    float amb_temp;         // [°C]
+    float baro_pressure;    // [kPa]
+
 } debug_fuel_data_pack_t; // In-depth data for debugging
 
 typedef struct __attribute__((packed)){

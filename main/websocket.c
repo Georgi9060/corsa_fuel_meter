@@ -1,8 +1,6 @@
 #include "websocket.h"
 #include "ws_comms.h"
 
-extern SemaphoreHandle_t ws_connected_sem;
-
 static char index_html[4096];
 static char response_data[4096];
 static int active_clients = 0;
@@ -234,9 +232,6 @@ static esp_err_t handle_ws_req(httpd_req_t *req) {
 #ifdef WS_DEBUG
         printf("Handshake done, the new connection was opened\n");
 #endif
-        if(active_clients == 0){
-            xSemaphoreGive(ws_connected_sem);
-        }
         active_clients++;
         return ESP_OK;
     }

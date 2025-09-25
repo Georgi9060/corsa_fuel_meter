@@ -34,7 +34,7 @@ void send_comms_data_pack(comms_data_pack_t data) {
 
 void send_debug_fuel_data_pack(debug_fuel_data_pack_t data) {
     char buf[128];
-    snprintf(buf, sizeof(buf), "d|%.1f|%.1f|%d|%.2f|%d|%d|%d|%d|%d|%.1f",
+    snprintf(buf, sizeof(buf), "d|%.1f|%.1f|%d|%.2f|%d|%d|%d|%d|%d|%.1f|%.1f|%.1f|",
                      data.inst_fuel,
                      data.avg_fuel,
                      data.coolant_temp,
@@ -44,7 +44,9 @@ void send_debug_fuel_data_pack(debug_fuel_data_pack_t data) {
                      data.pcnt_isr,
                      data.pcnt_rpm,
                      data.pdelta,
-                     data.avg_pwidth
+                     data.avg_pwidth,
+                     data.amb_temp,
+                     data.baro_pressure
                     );
 
     if (trigger_async_send(server, buf) != ESP_OK) {

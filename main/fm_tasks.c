@@ -1,13 +1,18 @@
 #include "fm_tasks.h"
+#include <sys/time.h>
 
 static portMUX_TYPE pulse_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static volatile uint16_t pulse_count_isr = 0;
 static uint32_t pulse_buffer[MAX_PULSES];
 
+EventGroupHandle_t startup_event_group = NULL;
 TaskHandle_t fuel_meter_task_handle = NULL;
 TaskHandle_t current_page_task_handle = NULL;
+TaskHandle_t display_task_handle = NULL;
 
-SemaphoreHandle_t fuel_data_mutex = NULL; // Protects fuel_meter_task and data sending tasks from mutual access
+
+extern bool kwp_init_success;
+SemaphoreHandle_t fuel_data_mutex = NULL;          // Protects fuel_meter_task and data sending tasks from mutual access
 
 /* Fuel meter data */
 static fuel_stats_t stats = {0};                // Stores runtime fuel statistics
@@ -16,8 +21,14 @@ static uint64_t avg_pulse_width = 0;          // Stores the average pulse width 
 static bool convert_to_currency = false;     // Whether the displayed data will be in litres or local currency (BGN/EUR)
 static float price_per_litre = 1;           // In local currency, default is 1 so if we don't enter a price, nothing changes // TODO: MOVE TO WEB, THIS SHOULD NOT BE DONE BY ESP32!
 static comms_data_pack_t car_data = {0};   // Stores the retrieved data from KWP comms, accessed by multiple tasks
+static bmp280_data_t bmp280_data = {0};   // Stores BMP280 measurements
 
-char currently_open_page[32] = {0};      // used to indicate which type of packet to prepare & send
+char currently_open_page[32] = {0};     // used to indicate which type of packet to prepare & send
+static i2c_dev_t pcf8574;              // i2c device handle for the backpack
+static bmp280_t bmp280;               // i2c device handle for the BMP280 sensor
+static bool responsive_lcd = false;  // Flag to show whether the backpack/LCD is responsive
+static bool responsive_bmp = false; // Flag to show whether the BMP280 is responsive
+
 
 static const char *TAG = "fm_tasks";
 
@@ -44,7 +55,13 @@ static void IRAM_ATTR injector_isr_handler(void* arg) {
     }
 }
 
-// Init injector pulse measurements
+// Callback for LCD write
+static esp_err_t write_lcd_data(const hd44780_t *lcd, uint8_t data)
+{
+    return pcf8574_port_write(&pcf8574, data);
+}
+
+/* Inits */
 void init_pulse_width_gpio(void) {
     gpio_config_t io_conf = {
         .pin_bit_mask = 1ULL << INJECTOR_PIN,
@@ -60,11 +77,36 @@ void init_pulse_width_gpio(void) {
     ESP_LOGI(TAG, "Ready to measure injector pulses on GPIO %d...", INJECTOR_PIN);
 }
 
+void init_bmp280_sensor(void *pvParameters) {
+    bmp280_params_t params;
+    bmp280_init_default_params(&params);
+
+    memset(&bmp280, 0, sizeof(bmp280_t));
+
+    bmp280_init_desc(&bmp280, BMP280_I2C_ADDRESS_0, 0, SDA_PIN, SCL_PIN);
+
+    while(!responsive_bmp){
+        if(i2c_dev_check_present(&bmp280.i2c_dev) == ESP_OK){ // Check if BMP280 is connected; If it is, try to init
+            if(bmp280_init(&bmp280, &params) == ESP_OK){
+                responsive_bmp = true; // Init is good, go on
+            }
+        }
+        if(!responsive_bmp){vTaskDelay(pdMS_TO_TICKS(1000));} // Keep checking/retrying init
+    }
+
+    bool bme280p = bmp280.id == BME280_CHIP_ID;
+    printf("BMP280: found %s\n", bme280p ? "BME280" : "BMP280");
+    bmp280_data.baro_pressure = P_BAROMETRIC_BASELINE;
+    vTaskDelete(NULL);
+}
+
 // Get data for fuel meter from KWP comms
 static comms_data_pack_t get_car_data(void) {
     bool res;
     comms_data_pack_t data = car_data; // Takes the last period's data (if any requests fail, we fall back to the last valid data, and if it's the first time, we just assume 0)
     data.can_calc_map = true;
+    data.attempt_cntr = 0;
+    data.success_cntr = 0;
 
     // Load [%]
     res = OBD9141_get_current_pid(0x04, 1);
@@ -251,7 +293,18 @@ static uint32_t get_map(uint16_t load, uint16_t rpm) {
 }
 
 static double get_fuel_coeff(uint32_t map) {
-    uint32_t p_barometric = P_BAROMETRIC_BASELINE;    // TODO: Take into account barometric pressure when I install BMP280 sensor
+    uint32_t p_barometric = P_BAROMETRIC_BASELINE;
+    esp_err_t err = bmp280_read_float(&bmp280, &bmp280_data.amb_temp, &bmp280_data.baro_pressure, NULL);
+    if (err == ESP_OK){
+        p_barometric = (uint32_t)bmp280_data.baro_pressure;
+        printf("Got pressure: %.1f\nGot temp: %.1f\n",bmp280_data.baro_pressure, bmp280_data.amb_temp);
+    }
+    else{
+        ESP_LOGE(TAG, "Temperature/pressure reading failed\n");
+        responsive_bmp = false;
+        xTaskCreate(init_bmp280_sensor, "init_bmp280_task", 4096, NULL, 3, NULL);
+    }
+    
     double p_ratio = p_barometric / P_BAROMETRIC_BASELINE;
 
     uint32_t p_across_inj = FUEL_RAIL_PRESSURE + (p_barometric - map);  // Current pressure across injector, can vary between 4.0 bar @ WOT and 4.7 bar @ idle
@@ -376,8 +429,10 @@ static debug_fuel_data_pack_t get_debug_fuel_data_pack(void) {
     // revs/min / 60 s = revs/sec; revs/sec / 2 (because every other rotation has an injection) and * 0.6 because revs/0.6 sec
     data_pack.pcnt_rpm = (int16_t)lround(local_car_data.rpm / 60 / 2 * 0.6);
     data_pack.pdelta = data_pack.pcnt_rpm - data_pack.pcnt_isr;
-    if(data_pack.pcnt_rpm == 0){data_pack.pcnt_rpm = 1;}
     data_pack.avg_pwidth = local_avg_pulse_width * 0.001; // [us] to [ms]
+    data_pack.amb_temp = bmp280_data.amb_temp;
+    data_pack.baro_pressure = bmp280_data.baro_pressure * 0.001f; // [Pa] to [kPa]
+
     return data_pack;
 }
 
@@ -400,7 +455,6 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
 
     return data_pack;
 }
-
 
 /* Page handlers */
 
@@ -459,7 +513,9 @@ void fuel_meter_task(void *pvParameters) {
                 period_fuel_cons += pulse_fuel * N_CYL; // For all 4 cylinders, we assume the same pulse width across all cylinders in a given 4-stroke cycle
                 avg_pulse_width += local_pulse_buffer[i];
             }
-            avg_pulse_width /= local_pulse_count;
+            if(local_pulse_count){
+                avg_pulse_width /= local_pulse_count; // Avoid division by 0
+            }
 
             // Distance travelled during this 600 ms period
             double speed_m_s = car_data.speed / 3.6; // [m/s]
@@ -510,6 +566,7 @@ void fuel_meter_task(void *pvParameters) {
             xSemaphoreGive(fuel_data_mutex);
         }
         xTaskNotifyGive(current_page_task_handle);
+        xTaskNotifyGive(display_task_handle);
     }
 }
 
@@ -534,5 +591,107 @@ void current_page_task(void *pvParameters) {
         else {
             // Page not relevant, ignore notification
         }
+    }
+}
+
+void display_task(void *pvParameters) {
+    hd44780_t lcd = {
+        .write_cb = write_lcd_data, // use callback to send data to LCD by I2C GPIO expander
+        .font = HD44780_FONT_5X8,
+        .lines = 2,
+        .pins = {
+            .rs = 0,
+            .e  = 2,
+            .d4 = 4,
+            .d5 = 5,
+            .d6 = 6,
+            .d7 = 7,
+            .bl = 3
+        }
+    };
+
+i2c_fail: // We lost connection to the backpack/display; reinit and start over
+    responsive_lcd = false;
+
+/* PCF8574 backpack + HD44780 display init */
+
+    memset(&pcf8574, 0, sizeof(i2c_dev_t));
+    pcf8574_init_desc(&pcf8574, PCF8574_ADDR, 0, SDA_PIN, SCL_PIN);
+
+    while(!responsive_lcd){
+                        printf("entered while !responsive_lcd!\n");
+        if(i2c_dev_check_present(&pcf8574) == ESP_OK){ // Check if backpack/LCD is connected; If it is, try to init
+            printf("lcd is present\n");
+            if(hd44780_init(&lcd) == ESP_OK){
+                responsive_lcd = true; // Init is good, go on
+            }
+        }
+        if(!responsive_lcd){vTaskDelay(pdMS_TO_TICKS(1000));} // Keep checking/retrying init}
+    }
+    size_t reinit_cnt = 0;
+
+    if(hd44780_switch_backlight(&lcd, true) != ESP_OK)          {goto i2c_fail;}
+    if(hd44780_clear(&lcd) != ESP_OK)                           {goto i2c_fail;}
+    EventBits_t bits = xEventGroupGetBits(startup_event_group);
+    if((bits & INITS_DONE) == 0){ // if inits not done yet (just started app, not reinitting display)
+        if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)                {goto i2c_fail;}
+        if(hd44780_puts(&lcd, "Initialising...") != ESP_OK)     {goto i2c_fail;}
+            xEventGroupWaitBits(startup_event_group, INITS_DONE, pdFALSE, pdFALSE, portMAX_DELAY);
+        if(hd44780_gotoxy(&lcd, 0, 1) != ESP_OK)                {goto i2c_fail;}
+        if(hd44780_puts(&lcd, "Done!") != ESP_OK)               {goto i2c_fail;}
+            vTaskDelay(pdMS_TO_TICKS(500));
+        if(hd44780_clear(&lcd) != ESP_OK)                       {goto i2c_fail;}
+    }
+
+    bits = xEventGroupGetBits(startup_event_group);
+    if((bits & KWP_INIT) == 0){ // if KWP not initialised yet (just started app, not reinitting display)
+        if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)                {goto i2c_fail;}
+        if(hd44780_puts(&lcd, "Starting KWP...") != ESP_OK)     {goto i2c_fail;}
+        do{
+                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            if(hd44780_gotoxy(&lcd, 0, 1) != ESP_OK)            {goto i2c_fail;}
+            if(kwp_init_success){
+                if(hd44780_puts(&lcd, "Connected!") != ESP_OK)  {goto i2c_fail;}
+            }
+            else{
+                if(hd44780_puts(&lcd, "Failed!") != ESP_OK)     {goto i2c_fail;}
+                    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                if(hd44780_clear(&lcd) != ESP_OK)               {goto i2c_fail;}
+                if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)        {goto i2c_fail;}
+                if(hd44780_puts(&lcd, "Retrying...") != ESP_OK) {goto i2c_fail;}
+            }
+        }
+        while(!kwp_init_success);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    }
+
+    while (1)
+    {   
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        reinit_cnt++;
+        if(reinit_cnt >= 2000){printf("reinit display!\n");responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
+        if(reinit_cnt % 60 == 0){printf("reinit_cnt: %d\n", reinit_cnt);}
+        char line1[32] = {0};
+        char line2[32] = {0};
+        fuel_stats_t local_stats = {0};
+        comms_data_pack_t local_car_data = {0};
+        // Copy locally to prevent overwrites
+        if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
+            local_stats = stats;
+            local_car_data = car_data;
+            xSemaphoreGive(fuel_data_mutex);
+        }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+        snprintf(line1, sizeof(line1), "Avg:%-5.1fL/100km", local_stats.fuel_cons_avg);
+        snprintf(line2, sizeof(line2), "Inst:%-2dL T:%3d%cC", (int)local_stats.fuel_cons_inst, local_car_data.coolant_temp, I2C_LCD1602_CHARACTER_DEGREE);
+#pragma GCC diagnostic pop
+
+        if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)                {goto i2c_fail;}
+        if(hd44780_puts(&lcd, line1) != ESP_OK)                 {goto i2c_fail;}
+        if(hd44780_gotoxy(&lcd, 0, 1) != ESP_OK)                {goto i2c_fail;}
+        if(hd44780_puts(&lcd, line2) != ESP_OK)                 {goto i2c_fail;}
     }
 }
