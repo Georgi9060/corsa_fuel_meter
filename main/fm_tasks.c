@@ -18,16 +18,14 @@ SemaphoreHandle_t fuel_data_mutex = NULL;          // Protects fuel_meter_task a
 static fuel_stats_t stats = {0};                // Stores runtime fuel statistics
 static uint16_t local_pulse_count = 0;         // Stores the pulse count accumulated every 600 ms
 static uint64_t avg_pulse_width = 0;          // Stores the average pulse width calculated every 600 ms
-static bool convert_to_currency = false;     // Whether the displayed data will be in litres or local currency (BGN/EUR)
-static float price_per_litre = 1;           // In local currency, default is 1 so if we don't enter a price, nothing changes // TODO: MOVE TO WEB, THIS SHOULD NOT BE DONE BY ESP32!
-static comms_data_pack_t car_data = {0};   // Stores the retrieved data from KWP comms, accessed by multiple tasks
-static bmp280_data_t bmp280_data = {0};   // Stores BMP280 measurements
+static comms_data_pack_t car_data = {0};     // Stores the retrieved data from KWP comms, accessed by multiple tasks
+static bmp280_data_t bmp280_data = {0};     // Stores BMP280 measurements
 
-char currently_open_page[32] = {0};     // used to indicate which type of packet to prepare & send
-static i2c_dev_t pcf8574;              // i2c device handle for the backpack
-static bmp280_t bmp280;               // i2c device handle for the BMP280 sensor
-static bool responsive_lcd = false;  // Flag to show whether the backpack/LCD is responsive
-static bool responsive_bmp = false; // Flag to show whether the BMP280 is responsive
+char currently_open_page[32] = {0};       // used to indicate which type of packet to prepare & send
+static i2c_dev_t pcf8574;                // i2c device handle for the backpack
+static bmp280_t bmp280;                 // i2c device handle for the BMP280 sensor
+static bool responsive_lcd = false;    // Flag to show whether the backpack/LCD is responsive
+static bool responsive_bmp = false;   // Flag to show whether the BMP280 is responsive
 
 
 static const char *TAG = "fm_tasks";
@@ -619,9 +617,7 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
     pcf8574_init_desc(&pcf8574, PCF8574_ADDR, 0, SDA_PIN, SCL_PIN);
 
     while(!responsive_lcd){
-                        printf("entered while !responsive_lcd!\n");
         if(i2c_dev_check_present(&pcf8574) == ESP_OK){ // Check if backpack/LCD is connected; If it is, try to init
-            printf("lcd is present\n");
             if(hd44780_init(&lcd) == ESP_OK){
                 responsive_lcd = true; // Init is good, go on
             }
@@ -670,8 +666,7 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
     {   
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         reinit_cnt++;
-        if(reinit_cnt >= 2000){printf("reinit display!\n");responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
-        if(reinit_cnt % 60 == 0){printf("reinit_cnt: %d\n", reinit_cnt);}
+        if(reinit_cnt >= 300){responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
         char line1[32] = {0};
         char line2[32] = {0};
         fuel_stats_t local_stats = {0};

@@ -2,8 +2,55 @@ const ws = new WebSocket("ws://192.168.4.1/ws");
 ws.binaryType = "arraybuffer";
 const logBox = document.getElementById("logBox");
 
+/* Currency toggle */
+const toggleCurrency = document.getElementById('toggleCurrency');
+const priceInput = document.getElementById('priceInput');
+
+let latestFuelParsed = {
+    ifl: 0.0,
+    afl: 0.0,
+    ctmp: 0,
+    cfl: 0.0,
+    fl6: 0.0,
+    fl60: 0.0
+};
+
+function updateFuelDisplay() {
+    const price = parseFloat(priceInput.value) || 0;
+    const inCurrency = toggleCurrency.checked;
+
+    function setCell(id, valueText, unitText) {
+        const cell = document.querySelector(`#${id}`);
+        if (!cell) return;
+        cell.querySelector('.value').textContent = valueText;
+        cell.querySelector('.unit').textContent = unitText;
+    }
+
+    if (inCurrency) {
+        setCell("inst-fuel", (latestFuelParsed.ifl * price).toFixed(2), "BGN/100 km");
+        setCell("avg-fuel", (latestFuelParsed.afl * price).toFixed(2), "BGN/100 km");
+        setCell("cons-fuel", (latestFuelParsed.cfl * price).toFixed(2), "BGN");
+        setCell("fuel-last-6", (latestFuelParsed.fl6 * 0.001 * price).toFixed(2), "BGN");
+        setCell("fuel-last-60", (latestFuelParsed.fl60 * 0.001 * price).toFixed(2), "BGN");
+    } else {
+        setCell("inst-fuel", latestFuelParsed.ifl.toFixed(1), "L/100 km");
+        setCell("avg-fuel", latestFuelParsed.afl.toFixed(1), "L/100 km");
+        setCell("cons-fuel", latestFuelParsed.cfl.toFixed(2), "L");
+        setCell("fuel-last-6", latestFuelParsed.fl6.toFixed(1), "mL");
+        setCell("fuel-last-60", latestFuelParsed.fl60.toFixed(0), "mL");
+    }
+
+    // temperature always same
+    setCell("ctmp", latestFuelParsed.ctmp, "°C");
+}
+
+toggleCurrency.addEventListener('change', updateFuelDisplay);
+priceInput.addEventListener('input', updateFuelDisplay);
+
+
 // On page load, restore any saved ESP logs
 window.addEventListener("DOMContentLoaded", () => {
+    updateFuelDisplay();
     const savedLogs = sessionStorage.getItem("esp32Logs");
     if (savedLogs) {
         // Split saved logs into lines and append spans
@@ -107,12 +154,8 @@ ws.onmessage = (event) => {
                 fl60: parseFloat(parts[6]),
             };
 
-            document.querySelector('#inst-fuel .value').textContent    = parsed.ifl.toFixed(1);
-            document.querySelector('#avg-fuel .value').textContent     = parsed.afl.toFixed(1);
-            document.querySelector('#ctmp .value').textContent         = parsed.ctmp;
-            document.querySelector('#cons-fuel .value').textContent    = parsed.cfl.toFixed(2);
-            document.querySelector('#fuel-last-6 .value').textContent  = parsed.cfl.toFixed(1);
-            document.querySelector('#fuel-last-60 .value').textContent = parsed.cfl;
+            latestFuelParsed = parsed;
+            updateFuelDisplay();
             return;
         }
     }

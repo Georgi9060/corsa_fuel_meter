@@ -14,6 +14,16 @@
     <button onclick="location.href='debugfuel.html'">Debug Fuel Data</button>
     <button onclick="location.href='logs.html'">ESP32 Logs</button>
   </div>
+  <div class="price-toggle">
+    <label for="priceInput">Price per litre (BGN):</label>
+    <input type="number" id="priceInput" step="0.01" value="2.40">
+
+    <label class="switch">
+      <input type="checkbox" id="toggleCurrency">
+      <span class="slider"></span>
+    </label>
+    <span id="toggleLabel">Show price (BGN)</span>
+  </div>
   <div class="grid">
     <div class="cell" id="inst-fuel"><div class="name">Instantaneous Fuel Consumption</div><div class="value">0.0</div><div class="unit">L/100 km</div></div>
     <div class="cell" id="avg-fuel"><div class="name">Average Fuel Consumption</div><div class="value">0.0</div><div class="unit">L/100 km</div></div>
