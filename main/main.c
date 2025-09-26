@@ -58,7 +58,6 @@ void app_main() {
     OBD9141_delay(1000);
     while(1){
         kwp_init_success = OBD9141_init_kwp();
-        kwp_init_success = true;
         ESP_LOGI(TAG, "KWP init success: %d\n", kwp_init_success);
         xTaskNotifyGive(display_task_handle); // Indicate success/fail on display
         OBD9141_delay(50);
