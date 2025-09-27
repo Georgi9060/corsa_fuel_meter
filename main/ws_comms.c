@@ -61,13 +61,16 @@ void send_debug_fuel_data_pack(debug_fuel_data_pack_t data) {
 
 void send_fuel_data_pack(fuel_data_pack_t data) {
     char buf[128];
-    snprintf(buf, sizeof(buf), "f|%.1f|%.1f|%d|%.2f|%.1f|%.0f|",
+    snprintf(buf, sizeof(buf), "f|%.1f|%.1f|%d|%.2f|%.1f|%.0f|%.1f|%.1f|",
                                 data.inst_fuel,
                                 data.avg_fuel,
                                 data.coolant_temp,
                                 data.cons_fuel,
                                 data.fuel_last_6,
-                                data.fuel_last_60
+                                data.fuel_last_60,
+                                //DEBUG
+                                data.dist_tr,
+                                data.baro_pressure
                                 );
 
     if (trigger_async_send(server, buf) != ESP_OK) {

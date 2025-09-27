@@ -12,7 +12,9 @@ let latestFuelParsed = {
     ctmp: 0,
     cfl: 0.0,
     fl6: 0.0,
-    fl60: 0.0
+    fl60: 0.0,
+    disttr: 0.0,
+    barop: 0.0,
 };
 
 function updateFuelDisplay() {
@@ -42,6 +44,9 @@ function updateFuelDisplay() {
 
     // temperature always same
     setCell("ctmp", latestFuelParsed.ctmp, "°C");
+    //DEBUG
+    setCell("dist-tr", latestFuelParsed.disttr, "m");
+    setCell("barop", latestFuelParsed.barop, "kPa");
 }
 
 toggleCurrency.addEventListener('change', updateFuelDisplay);
@@ -143,7 +148,7 @@ ws.onmessage = (event) => {
             return;
         }
 
-        else if (type === 'f' && parts.length >= 7) {
+        else if (type === 'f' && parts.length >= 9) {
             // Fuel packet
             const parsed = {
                 ifl: parseFloat(parts[1]),
@@ -152,6 +157,8 @@ ws.onmessage = (event) => {
                 cfl: parseFloat(parts[4]),
                 fl6: parseFloat(parts[5]),
                 fl60: parseFloat(parts[6]),
+                disttr: parseFloat(parts[7]),
+                barop: parseFloat(parts[8]),
             };
 
             latestFuelParsed = parsed;

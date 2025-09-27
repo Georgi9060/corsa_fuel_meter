@@ -177,6 +177,7 @@ static comms_data_pack_t get_car_data(void) {
     if(data.success_cntr != data.attempt_cntr){
         ESP_LOGW(TAG, "success_cntr != attempt_cntr: %d/%d", data.success_cntr, data.attempt_cntr);
     }
+    printf("%d/%d\n", data.attempt_cntr, data.success_cntr);
     return data;
 }
 
@@ -295,7 +296,6 @@ static double get_fuel_coeff(uint32_t map) {
     esp_err_t err = bmp280_read_float(&bmp280, &bmp280_data.amb_temp, &bmp280_data.baro_pressure, NULL);
     if (err == ESP_OK){
         p_barometric = (uint32_t)bmp280_data.baro_pressure;
-        printf("Got pressure: %.1f\nGot temp: %.1f\n",bmp280_data.baro_pressure, bmp280_data.amb_temp);
     }
     else{
         ESP_LOGE(TAG, "Temperature/pressure reading failed\n");
@@ -399,7 +399,8 @@ static double get_pulse_fuel(uint32_t pulse_width, double fuel_coeff) {
 /* Get current page's data pack */
 
 static comms_data_pack_t get_comms_data_pack(void) {
-    return car_data;
+    comms_data_pack_t local_car_data = car_data;
+    return local_car_data;
 }
 
 static debug_fuel_data_pack_t get_debug_fuel_data_pack(void) {
@@ -410,12 +411,15 @@ static debug_fuel_data_pack_t get_debug_fuel_data_pack(void) {
     uint64_t local_avg_pulse_width = 0;
     // Copy locally to prevent overwrites
     if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
+        ets_printf("took mutex from debug fuel");
         local_stats = stats;
         local_car_data = car_data;
         local_local_pulse_count = local_pulse_count;
         local_avg_pulse_width = avg_pulse_width;
         xSemaphoreGive(fuel_data_mutex);
+        ets_printf("returned mutex from debug fuel");
     }
+
     data_pack.inst_fuel = local_stats.fuel_cons_inst;
     data_pack.avg_fuel = local_stats.fuel_cons_avg;
     data_pack.coolant_temp = local_car_data.coolant_temp;
@@ -440,9 +444,11 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
     comms_data_pack_t local_car_data = {0};
     // Copy locally to prevent overwrites
     if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
+        ets_printf("took mutex from fuel");
         local_stats = stats;
         local_car_data = car_data;
         xSemaphoreGive(fuel_data_mutex);
+        ets_printf("returned mutex fromfuel");
     }
     data_pack.inst_fuel = local_stats.fuel_cons_inst;
     data_pack.avg_fuel = local_stats.fuel_cons_avg;
@@ -450,6 +456,9 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
     data_pack.cons_fuel = local_stats.fuel_consumed * 0.000001;       // [uL] to [L]
     data_pack.fuel_last_6 = local_stats.fuel_cons_last_6 * 0.001;     // [uL] to [mL]
     data_pack.fuel_last_60 = local_stats.fuel_cons_last_60 * 0.001;   // [uL] to [mL]
+    //DEBUG
+    data_pack.dist_tr = local_stats.dist_tr;
+    data_pack.baro_pressure = bmp280_data.baro_pressure / 1000; // [Pa] to [kPa]
 
     return data_pack;
 }
@@ -480,7 +489,7 @@ void fuel_meter_task(void *pvParameters) {
     while (1) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(600));
         if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
-            
+            ESP_LOGI(TAG, "Got fuel mutex from fuel_meter_task!");
         
 /* ---------------------------------- Gather data ----------------------------------------------- */
 
@@ -562,9 +571,11 @@ void fuel_meter_task(void *pvParameters) {
             index_60 = (index_60 + 1) % 60;
 /* ----------------------------------Fuel Meter data done ----------------------------------------------- */
             xSemaphoreGive(fuel_data_mutex);
+            ESP_LOGI(TAG, "Gave fuel mutex from fuel_meter_task!");
         }
         xTaskNotifyGive(current_page_task_handle);
         xTaskNotifyGive(display_task_handle);
+        ESP_LOGI(TAG, "Sent notifications to current_page_task and display_task!");
     }
 }
 
@@ -577,6 +588,7 @@ void current_page_task(void *pvParameters) {
             ESP_LOGW(TAG, "fuel_meter_task timeout");
             continue;
         }
+        ESP_LOGI(TAG, "Got notification from current_page_task!");
         if (strcmp(currently_open_page, "comms.html") == 0) {
             comms_page_handler();
         }

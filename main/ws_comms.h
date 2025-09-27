@@ -43,6 +43,9 @@ typedef struct __attribute__((packed)){
     float cons_fuel;        // [L]
     float fuel_last_6;      // [mL]
     float fuel_last_60;     // [mL]
+    //DEBUG
+    float dist_tr;          // [m]
+    uint32_t baro_pressure; // [kPa]
 } fuel_data_pack_t; // Brief data, what the whole project is about
 
 /* Send */
