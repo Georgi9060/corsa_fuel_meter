@@ -4,7 +4,7 @@
 #include "websocket.h"
 #include "esp_log.h"
 
-// #define COMMS_DEBUG // uncomment to enable WS communications debug
+#define COMMS_DEBUG // uncomment to enable WS communications debug
 
 typedef struct __attribute__((packed)){
     uint8_t load;           // [%]
@@ -45,7 +45,7 @@ typedef struct __attribute__((packed)){
     float fuel_last_60;     // [mL]
     //DEBUG
     float dist_tr;          // [m]
-    uint32_t baro_pressure; // [kPa]
+    float baro_pressure; // [kPa]
 } fuel_data_pack_t; // Brief data, what the whole project is about
 
 /* Send */

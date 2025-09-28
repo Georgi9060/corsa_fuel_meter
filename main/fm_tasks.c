@@ -114,7 +114,7 @@ static comms_data_pack_t get_car_data(void) {
         data.success_cntr++;
     }
     else{data.can_calc_map = false;}
-    OBD9141_delay(INBETWEEN_DELAY_MS);
+    // OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Engine Coolant Temperature [°C]
     res = OBD9141_get_current_pid(0x05, 1);
@@ -123,7 +123,7 @@ static comms_data_pack_t get_car_data(void) {
         data.coolant_temp = OBD9141_read_uint8() - 40;
         data.success_cntr++;
     }
-    OBD9141_delay(INBETWEEN_DELAY_MS);
+    // OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // RPM
     res = OBD9141_get_current_pid(0x0C, 2);
@@ -133,7 +133,7 @@ static comms_data_pack_t get_car_data(void) {
         data.success_cntr++;
     }
     else{data.can_calc_map = false;}
-    OBD9141_delay(INBETWEEN_DELAY_MS);
+    // OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Vehicle Speed [km/h]
     res = OBD9141_get_current_pid(0x0D, 1);
@@ -142,7 +142,7 @@ static comms_data_pack_t get_car_data(void) {
         data.speed = OBD9141_read_uint8();
         data.success_cntr++;
     } else{data.speed = 0;} // Do not leave old speed data so you don't assume distance travelled but only record fuel consumed
-    OBD9141_delay(INBETWEEN_DELAY_MS);
+    // OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Intake Air Temperature [°C]
     res = OBD9141_get_current_pid(0x0F, 1);
@@ -153,7 +153,7 @@ static comms_data_pack_t get_car_data(void) {
         data.read_iat = true; // differentiate no response from actual 0 degrees Celsius
     }
     // else{data.can_calc_map = false;}
-    OBD9141_delay(INBETWEEN_DELAY_MS);
+    // OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Mass Air Flow [g/s]
     res = OBD9141_get_current_pid(0x10, 2);
@@ -163,7 +163,7 @@ static comms_data_pack_t get_car_data(void) {
         data.success_cntr++;
     }
     // else{data.can_calc_map = false;}
-    OBD9141_delay(INBETWEEN_DELAY_MS);
+    // OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Throttle [%]
     res = OBD9141_get_current_pid(0x11, 1);
@@ -177,7 +177,7 @@ static comms_data_pack_t get_car_data(void) {
     if(data.success_cntr != data.attempt_cntr){
         ESP_LOGW(TAG, "success_cntr != attempt_cntr: %d/%d", data.success_cntr, data.attempt_cntr);
     }
-    printf("%d/%d\n", data.attempt_cntr, data.success_cntr);
+    printf("%d/%d\n", data.success_cntr, data.attempt_cntr);
     return data;
 }
 
@@ -444,11 +444,11 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
     comms_data_pack_t local_car_data = {0};
     // Copy locally to prevent overwrites
     if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
-        ets_printf("took mutex from fuel");
+        ets_printf("took mutex from get_fuel_data_pack\n");
         local_stats = stats;
         local_car_data = car_data;
         xSemaphoreGive(fuel_data_mutex);
-        ets_printf("returned mutex fromfuel");
+        ets_printf("returned mutex from get_fuel_data_pack\n");
     }
     data_pack.inst_fuel = local_stats.fuel_cons_inst;
     data_pack.avg_fuel = local_stats.fuel_cons_avg;
@@ -466,16 +466,19 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
 /* Page handlers */
 
 static void comms_page_handler(void) {
+    ets_printf("entered comms_page_handler\n");
     comms_data_pack_t data = get_comms_data_pack();
     send_comms_data_pack(data);
 }
 
 static void debug_fuel_page_handler(void) {
+    ets_printf("entered debug_fuel_page_handler\n");
     debug_fuel_data_pack_t data = get_debug_fuel_data_pack();
     send_debug_fuel_data_pack(data);
 }
 
 static void fuel_page_handler(void) {
+    ets_printf("entered ffuel_page_handler\n");
     fuel_data_pack_t data = get_fuel_data_pack();
     send_fuel_data_pack(data);
 }
@@ -581,8 +584,8 @@ void fuel_meter_task(void *pvParameters) {
 
 void current_page_task(void *pvParameters) {
     while (1) {
-        // Wait for data to be ready, up to 600 ms
-        uint32_t notifyCount = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(600));
+        // Wait for data to be ready, up to 600 + 100 ms
+        uint32_t notifyCount = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(700));
 
         if (!notifyCount) {
             ESP_LOGW(TAG, "fuel_meter_task timeout");
@@ -678,7 +681,7 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
     {   
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         reinit_cnt++;
-        if(reinit_cnt >= 300){responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
+        if(reinit_cnt >= 120){responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
         char line1[32] = {0};
         char line2[32] = {0};
         fuel_stats_t local_stats = {0};

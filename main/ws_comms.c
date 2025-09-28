@@ -93,5 +93,5 @@ void set_open_page(cJSON *root) {
         ESP_LOGE(TAG, "'page' is not a string!"); return;
     }
     strcpy(currently_open_page, page->valuestring);
-    ESP_LOGI(TAG,"Currently open page: %s", currently_open_page);
+    ESP_LOGE(TAG,"Currently open page: %s", currently_open_page);
 }
