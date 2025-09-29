@@ -1,0 +1,91 @@
+fm_tasks.c:
+
+// // Get Volumetric Efficiency (for MAP, from VE LUT)
+// static float get_ve(uint16_t load, uint16_t rpm) {
+//     const int nx = sizeof(load_bp) / sizeof(load_bp[0]);
+//     const int ny = sizeof(rpm_bp) / sizeof(rpm_bp[0]);
+
+//     // Clamp rpm at table range
+//     if (rpm <= rpm_bp[0]) rpm = rpm_bp[0];     // clamp to 500 rpm
+//     if (rpm >= rpm_bp[ny -1 ]) rpm = rpm_bp[ny - 1]; // clamp to 7000 rpm
+
+//     // Clamp load at table range
+//     if (load <= load_bp[0]) load = load_bp[0];
+//     if (load >= load_bp[nx - 1]) load = load_bp[nx - 1];
+
+//     // Find load indices
+//     int ix = 0;
+//     while (ix < nx - 2 && load > load_bp[ix+1]) ix++;
+//     int ix1 = ix, ix2 = ix + 1;
+
+//     uint16_t x1 = load_bp[ix1];
+//     uint16_t x2 = load_bp[ix2];
+//     uint16_t dx = x2 - x1;
+//     uint16_t fx = (dx ? ((load - x1) * 1000) / dx : 0);
+
+//     // Find rpm indices
+//     int iy = 0;
+//     while (iy < ny - 2 && rpm > rpm_bp[iy + 1]) iy++;
+//     int iy1 = iy, iy2 = iy + 1;
+
+//     uint16_t y1 = rpm_bp[iy1];
+//     uint16_t y2 = rpm_bp[iy2];
+//     uint16_t dy = y2 - y1;
+//     uint16_t fy = (dy ? ((rpm - y1) * 1000) / dy : 0);
+
+//     // Get 4 surrounding VE values (x1000)
+//     uint32_t v11 = ve_table[iy1][ix1];
+//     uint32_t v12 = ve_table[iy1][ix2];
+//     uint32_t v21 = ve_table[iy2][ix1];
+//     uint32_t v22 = ve_table[iy2][ix2];
+
+//     // Bilinear interpolation
+//     uint32_t v1 = v11 + ((v12 - v11) * fx) / 1000;
+//     uint32_t v2 = v21 + ((v22 - v21) * fx) / 1000;
+//     uint32_t v  = v1  + ((v2  - v1 ) * fy) / 1000;
+
+//     return (float)v / 1000.0f;
+// }
+
+// Get Manifold Absolute Pressure (for fuel injector rate)
+// static uint32_t get_map(void) {
+//     uint32_t map = 0;
+//     if(!car_data.can_calc_map){ // We missed some data, must work around this
+//         // TODO: Calculate MAP if some data is missing
+//         //...
+//         return 65000; // Return 65kPa (4.35 bar delta across injector, +-4% error in injector rate)
+//     }
+//     else{ // All data gathered and valid
+//         /* Convert to appropriate SI units */
+//         float maf = car_data.maf * 0.001f;                                          // Mass air flow          [kg/s]
+//         uint16_t intake_temp = TO_KELVIN(car_data.intake_temp);                     // Intake air temp        [K]
+//         uint16_t N_intakes_s = (car_data.rpm * N_CYL) / 120;                        // Air intakes per second [-]
+//         if(!N_intakes_s){N_intakes_s++;}                                            // avoid dividing by 0
+//         float VE = get_ve(car_data.throttle, car_data.rpm);                         // Volumetric efficiency  [-]
+//         float V_cyl = V_CYL * 0.000001f;                                            // Cylinder volume        [m^3]
+
+//         map = (maf * R_AIR * intake_temp) / (VE * V_cyl * N_intakes_s);             // Manifold absolute pressure [Pa]
+//     }
+//     return map;
+// }
+
+
+phys_const.h:
+
+// /* Volumetric Efficiency LUT */
+
+// // Breakpoints
+// static const uint16_t rpm_bp[]   = {500, 1000, 2000, 3000, 4000, 5000, 6000, 7000};
+// static const uint8_t  load_bp[]  = {0, 20, 40, 60, 80, 100};
+
+// // VE table: [rpm][load], values = VE * 1000
+// static const uint16_t ve_table[8][6] = {
+//     {250, 300, 350, 420, 480, 520},  // 500 rpm 
+//     {300, 380, 480, 580, 680, 730},  // 1000 rpm
+//     {320, 450, 600, 700, 800, 850},  // 2000 rpm
+//     {350, 500, 700, 800, 850, 890},  // 3000 rpm
+//     {360, 540, 760, 860, 900, 920},  // 4000 rpm
+//     {340, 500, 700, 820, 860, 880},  // 5000 rpm
+//     {300, 450, 650, 780, 820, 850},  // 6000 rpm
+//     {260, 420, 600, 720, 760, 780},  // 7000 rpm
+// };

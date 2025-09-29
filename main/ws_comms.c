@@ -2,6 +2,8 @@
 
 extern httpd_handle_t server;
 
+extern TaskHandle_t current_page_task_handle;
+
 extern char currently_open_page[32];
 
 const char *TAG = "ws_comms";
@@ -34,10 +36,10 @@ void send_comms_data_pack(comms_data_pack_t data) {
 
 void send_debug_fuel_data_pack(debug_fuel_data_pack_t data) {
     char buf[128];
-    snprintf(buf, sizeof(buf), "d|%.1f|%.1f|%d|%.2f|%d|%d|%d|%d|%d|%.1f|%.1f|%.1f|",
+    snprintf(buf, sizeof(buf), "d|%.1f|%.1f|%.1f|%.2f|%d|%d|%d|%d|%d|%.1f|%.1f|%.1f|",
                      data.inst_fuel,
                      data.avg_fuel,
-                     data.coolant_temp,
+                     data.dist_tr,
                      data.cons_fuel,
                      data.rpm,
                      data.speed,
@@ -61,16 +63,13 @@ void send_debug_fuel_data_pack(debug_fuel_data_pack_t data) {
 
 void send_fuel_data_pack(fuel_data_pack_t data) {
     char buf[128];
-    snprintf(buf, sizeof(buf), "f|%.1f|%.1f|%d|%.2f|%.1f|%.0f|%.1f|%.1f|",
+    snprintf(buf, sizeof(buf), "f|%.1f|%.1f|%d|%.2f|%.1f|%.0f|",
                                 data.inst_fuel,
                                 data.avg_fuel,
                                 data.coolant_temp,
                                 data.cons_fuel,
                                 data.fuel_last_6,
-                                data.fuel_last_60,
-                                //DEBUG
-                                data.dist_tr,
-                                data.baro_pressure
+                                data.fuel_last_60
                                 );
 
     if (trigger_async_send(server, buf) != ESP_OK) {
@@ -93,5 +92,55 @@ void set_open_page(cJSON *root) {
         ESP_LOGE(TAG, "'page' is not a string!"); return;
     }
     strcpy(currently_open_page, page->valuestring);
-    ESP_LOGE(TAG,"Currently open page: %s", currently_open_page);
+    ESP_LOGI(TAG,"Currently open page: %s", currently_open_page);
+}
+
+void load_fuel_data(void) {
+    double fuel_consumed = get_fuel_consumed();
+    double dist_tr = get_dist_tr();
+    float fuel_cons_avg = dist_tr ? fuel_consumed / dist_tr * 0.1 : -1;
+    // 1 [uL/m] = 1 [mL/km] = 100 [mL/100 km] = 0.1 [L/100 km]
+    fuel_stats_t fuel_stats = {
+        .fuel_cons_inst = -1,
+        .fuel_cons_avg = fuel_cons_avg,
+        .fuel_consumed = fuel_consumed,
+        .dist_tr = dist_tr,
+        .fuel_cons_last_6 = 0,
+        .fuel_cons_last_60 = 0
+    };
+    set_stats(&fuel_stats);
+}
+
+void save_add_fuel_data(void) {
+    const fuel_stats_t *fuel_stats = get_stats();
+    double fuel_consumed = get_fuel_consumed();
+    double dist_tr = get_dist_tr();
+    fuel_consumed += fuel_stats->fuel_consumed;
+    dist_tr += fuel_stats->dist_tr;
+    set_fuel_consumed(fuel_consumed);
+    set_dist_tr(dist_tr);
+}
+
+void save_ovw_fuel_data(void) {
+    const fuel_stats_t *fuel_stats = get_stats();
+    set_fuel_consumed(fuel_stats->fuel_consumed);
+    set_dist_tr(fuel_stats->dist_tr);
+}
+
+void clear_fuel_data(void) {
+    fuel_stats_t fuel_stats = {
+        .fuel_cons_inst = -1,
+        .fuel_cons_avg = -1,
+        .fuel_consumed = 0,
+        .dist_tr = 0,
+        .fuel_cons_last_6 = 0,
+        .fuel_cons_last_60 = 0
+    };
+    set_stats(&fuel_stats);
+}
+
+void delete_fuel_data(void) {
+    clear_fuel_data();
+    set_fuel_consumed(0);
+    set_dist_tr(0);
 }

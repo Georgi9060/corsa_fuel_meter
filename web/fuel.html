@@ -24,6 +24,18 @@
     </label>
     <span id="toggleLabel">Show price (BGN)</span>
   </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+    <div><span>1.</span><button id="btnLoad">Load Fuel Data</button></div>
+    <div><span>2.</span><button id="btnSaveAdd">Save (Add)</button></div>
+    <div><span>2.</span><button id=btnSaveOvw>Save (Overwrite)</button></div>
+  </div>
+  <div>
+    <div style="display:flex;align-items:center;gap:40px;margin-top: 50px;">
+      <div style="margin-left:20px"><button id="btnClear">Clear Fuel Data</button></div>
+      <div><button id="btnDelete">Delete Fuel Data</button></div>
+    </div>
+
+  </div>
   <div class="grid">
     <div class="cell" id="inst-fuel"><div class="name">Instantaneous Fuel Consumption</div><div class="value">0.0</div><div class="unit">L/100 km</div></div>
     <div class="cell" id="avg-fuel"><div class="name">Average Fuel Consumption</div><div class="value">0.0</div><div class="unit">L/100 km</div></div>
@@ -31,8 +43,6 @@
     <div class="cell" id="cons-fuel"><div class="name">Fuel Consumed</div><div class="value">0.00</div><div class="unit">L</div></div>
     <div class="cell" id="fuel-last-6"><div class="name">Fuel Consumed Last 6 Seconds</div><div class="value">0.0</div><div class="unit">mL</div></div>
     <div class="cell" id="fuel-last-60"><div class="name">Fuel Consumed Last 60 Seconds</div><div class="value">0</div><div class="unit">mL</div></div>
-    <div class="cell" id="dist-tr"><div class="name">Distance Traveled</div><div class="value">0.0</div><div class="unit">m</div></div>
-    <div class="cell" id="barop"><div class="name">Barometric Pressure</div><div class="value">0.0</div><div class="unit">kPa</div></div>
   </div>
     <pre id="inPageConsole"></pre>
 

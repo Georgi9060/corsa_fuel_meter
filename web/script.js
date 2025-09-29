@@ -2,10 +2,12 @@ const ws = new WebSocket("ws://192.168.4.1/ws");
 ws.binaryType = "arraybuffer";
 const logBox = document.getElementById("logBox");
 
-/* Currency toggle */
-const toggleCurrency = document.getElementById('toggleCurrency');
-const priceInput = document.getElementById('priceInput');
+let wsReady = false;
+let domReady = false;
+let pageName = "";
 
+/* Currency toggle (fuel.html only) */
+let toggleCurrency, priceInput;
 let latestFuelParsed = {
     ifl: 0.0,
     afl: 0.0,
@@ -18,8 +20,8 @@ let latestFuelParsed = {
 };
 
 function updateFuelDisplay() {
-    const price = parseFloat(priceInput.value) || 0;
-    const inCurrency = toggleCurrency.checked;
+    const price = parseFloat(priceInput?.value) || 0;
+    const inCurrency = toggleCurrency?.checked;
 
     function setCell(id, valueText, unitText) {
         const cell = document.querySelector(`#${id}`);
@@ -44,43 +46,54 @@ function updateFuelDisplay() {
 
     // temperature always same
     setCell("ctmp", latestFuelParsed.ctmp, "°C");
-    //DEBUG
-    setCell("dist-tr", latestFuelParsed.disttr, "m");
-    setCell("barop", latestFuelParsed.barop, "kPa");
 }
 
-toggleCurrency.addEventListener('change', updateFuelDisplay);
-priceInput.addEventListener('input', updateFuelDisplay);
-
-
-// On page load, restore any saved ESP logs
 window.addEventListener("DOMContentLoaded", () => {
-    updateFuelDisplay();
+    domReady = true;
+    pageName = window.location.pathname.split("/").pop();
+
+    if (pageName === "fuel.html") {
+        toggleCurrency = document.getElementById('toggleCurrency');
+        priceInput = document.getElementById('priceInput');
+        toggleCurrency.addEventListener('change', updateFuelDisplay);
+        priceInput.addEventListener('input', updateFuelDisplay);
+        updateFuelDisplay();
+    }
+
+    // Restore any saved ESP logs
     const savedLogs = sessionStorage.getItem("esp32Logs");
-    if (savedLogs) {
+    if (savedLogs && logBox) {
         // Split saved logs into lines and append spans
         savedLogs.split("\n").forEach(line => {
             if (!line) return;
             const span = document.createElement("span");
-            if (line.startsWith('W') || line.includes(' W ')) {
+                        if (line.startsWith('W') || line.includes(' W ')) {
                 span.classList.add('warn');
             } else if (line.startsWith('E') || line.includes(' E ')) {
                 span.classList.add('error');
             } else {
                 span.classList.add('info');
-            }
+            }            
             span.textContent = line + "\n";
             logBox.appendChild(span);
         });
         logBox.scrollTop = logBox.scrollHeight;
     }
+
+    trySendPageOpen();
 });
 
-ws.onopen = () => {
-    console.log("Connected to ESP32 WebSocket");
-    const pageName = window.location.pathname.split("/").pop(); 
-    ws.send(JSON.stringify({ type: "page_open", page: pageName }));
+function trySendPageOpen() {
+    if (wsReady && domReady) {
+        ws.send(JSON.stringify({ type: "page_open", page: pageName }));
+    }
 }
+
+ws.onopen = () => {
+    wsReady = true;
+    console.log("Connected to ESP32 WebSocket");
+    trySendPageOpen();
+};
 
 ws.onmessage = (event) => {
     const msg = event.data.trim();
@@ -120,7 +133,7 @@ ws.onmessage = (event) => {
             const parsed = {
                 ifl: parseFloat(parts[1]),
                 afl: parseFloat(parts[2]),
-                ctmp: +parts[3],
+                disttr: parseFloat(parts[3]),
                 cfl: parseFloat(parts[4]),
                 rpm: +parts[5],
                 spd: +parts[6],
@@ -134,7 +147,7 @@ ws.onmessage = (event) => {
 
             document.querySelector('#inst-fuel .value').textContent      = parsed.ifl.toFixed(1);
             document.querySelector('#avg-fuel .value').textContent       = parsed.afl.toFixed(1);
-            document.querySelector('#ctmp .value').textContent           = parsed.ctmp;
+            document.querySelector('#dist-tr .value').textContent        = parsed.disttr.toFixed(1);
             document.querySelector('#cons-fuel .value').textContent      = parsed.cfl.toFixed(2);
             document.querySelector('#rpm .value').textContent            = parsed.rpm;
             document.querySelector('#spd .value').textContent            = parsed.spd;
@@ -144,34 +157,29 @@ ws.onmessage = (event) => {
             document.querySelector('#avg-pwidth .value').textContent     = parsed.pdpc.toFixed(1);
             document.querySelector('#cabtmp .value').textContent         = parsed.cabtmp.toFixed(1);
             document.querySelector('#barop .value').textContent          = parsed.barop.toFixed(1);
-
             return;
         }
 
-        else if (type === 'f' && parts.length >= 9) {
+        else if (type === 'f' && parts.length >= 7) {
             // Fuel packet
-            const parsed = {
+            latestFuelParsed = {
                 ifl: parseFloat(parts[1]),
                 afl: parseFloat(parts[2]),
                 ctmp: +parts[3],
                 cfl: parseFloat(parts[4]),
                 fl6: parseFloat(parts[5]),
                 fl60: parseFloat(parts[6]),
-                disttr: parseFloat(parts[7]),
-                barop: parseFloat(parts[8]),
             };
-
-            latestFuelParsed = parsed;
-            updateFuelDisplay();
+            if (pageName === "fuel.html") updateFuelDisplay();
             return;
         }
     }
 
-    // Text/JSON case 
+    // Text/JSON case
     let parsed;
     try {
         parsed = JSON.parse(msg);
-    } catch (e) {
+    } catch {
         parsed = null;
     }
 
@@ -181,13 +189,14 @@ ws.onmessage = (event) => {
     } else if (parsed && parsed.type === "filler2") {
         // Do other stuff
 
-    } else {
-        // ESP32 console logs
-        const logBox = document.getElementById('logBox');
-        let logs = sessionStorage.getItem("esp32Logs") || "";
-        logs += msg + "\n";
-        sessionStorage.setItem("esp32Logs", logs);
+    }
 
+    // ESP32 console logs (always saved, only displayed if logBox exists)
+    let logs = sessionStorage.getItem("esp32Logs") || "";
+    logs += msg + "\n";
+    sessionStorage.setItem("esp32Logs", logs);
+
+    if (logBox) {
         const span = document.createElement("span");
         if (msg.startsWith('W') || msg.includes(' W ')) {
             span.classList.add('warn');
@@ -222,12 +231,11 @@ ws.onerror = (error) => console.error("WebSocket error:", error);
 })();
 
 function downloadLog() {
-    // Extract plain text (ignores colors)
-    const text = logBox.innerText;
+    const text = logBox ? logBox.innerText : sessionStorage.getItem("esp32Logs") || "";
 
     // Create unique filename (timestamp based)
     const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, "-"); // safe filename
+    const timestamp = now.toISOString().replace(/[:.]/g, "-");
     const filename = "esp32_log_" + timestamp + ".txt";
 
     // Make blob & trigger download
@@ -239,4 +247,65 @@ function downloadLog() {
     a.click();
     URL.revokeObjectURL(url);
 }
+
+/* Load/Save/Delete fuel data */
+
+const btnLoad       = document.getElementById("btnLoad");
+const btnSaveAdd    = document.getElementById("btnSaveAdd");
+const btnSaveOvw    = document.getElementById("btnSaveOvw");
+const btnClear      = document.getElementById("btnClear");
+const btnDelete     = document.getElementById("btnDelete");
+
+btnLoad.addEventListener("click", () => {
+ws.send(JSON.stringify({ type: "load_fuel_data" }));
+});
+
+btnSaveAdd.addEventListener("click", () => {
+ws.send(JSON.stringify({ type: "save_add_fuel_data" }));
+});
+
+btnSaveOvw.addEventListener("click", () => {
+ws.send(JSON.stringify({ type: "save_ovw_fuel_data" }));
+});
+
+btnClear.addEventListener("click", () => {
+    ws.send(JSON.stringify({type: "clear_fuel_data" }));
+});
+
+btnDelete.addEventListener("click", () => {
+// Custom confirmation dialog
+const overlay = document.createElement("div");
+overlay.style.cssText =
+    "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);" +
+    "display:flex;align-items:center;justify-content:center;z-index:9999;";
+
+const box = document.createElement("div");
+box.style.cssText =
+    "background:#111;padding:20px;border-radius:8px;text-align:center;max-width:300px;";
+
+const msg = document.createElement("p");
+msg.textContent = "Are you sure you want to delete accumulated fuel data?";
+msg.style.marginBottom = "15px";
+
+const btnYes = document.createElement("button");
+btnYes.textContent = "Yes";
+btnYes.style.cssText = "background:green;color:white;margin:0 10px;padding:5px 15px;";
+btnYes.onclick = () => {
+    ws.send(JSON.stringify({ type: "delete_fuel_data" }));
+    document.body.removeChild(overlay);
+};
+
+const btnNo = document.createElement("button");
+btnNo.textContent = "No";
+btnNo.style.cssText = "background:red;color:white;margin:0 10px;padding:5px 15px;";
+btnNo.onclick = () => {
+    document.body.removeChild(overlay);
+};
+
+box.appendChild(msg);
+box.appendChild(btnYes);
+box.appendChild(btnNo);
+overlay.appendChild(box);
+document.body.appendChild(overlay);
+});
 

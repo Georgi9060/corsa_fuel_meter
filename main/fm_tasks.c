@@ -59,7 +59,20 @@ static esp_err_t write_lcd_data(const hd44780_t *lcd, uint8_t data)
     return pcf8574_port_write(&pcf8574, data);
 }
 
+/* Getter/setter for fuel_stats */
+
+const fuel_stats_t *get_stats(void) {
+    return &stats;
+}
+
+void set_stats(const fuel_stats_t *set_stats) {
+    if(set_stats){
+        stats = *set_stats;
+    }
+}
+
 /* Inits */
+
 void init_pulse_width_gpio(void) {
     gpio_config_t io_conf = {
         .pin_bit_mask = 1ULL << INJECTOR_PIN,
@@ -98,7 +111,15 @@ void init_bmp280_sensor(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-// Get data for fuel meter from KWP comms
+inline bool get_pid(uint8_t pid, uint8_t return_length, comms_data_pack_t *data) {
+    bool res = OBD9141_get_current_pid(pid, return_length);
+    data->attempt_cntr++;
+    if (res)
+        data->success_cntr++;
+    return res;
+}
+
+/* Get data for fuel meter from KWP comms */
 static comms_data_pack_t get_car_data(void) {
     bool res;
     comms_data_pack_t data = car_data; // Takes the last period's data (if any requests fail, we fall back to the last valid data, and if it's the first time, we just assume 0)
@@ -107,148 +128,54 @@ static comms_data_pack_t get_car_data(void) {
     data.success_cntr = 0;
 
     // Load [%]
-    res = OBD9141_get_current_pid(0x04, 1);
-    data.attempt_cntr++;
-    if(res){
+    if(get_pid(0x04, 1, &data)){
         data.load = OBD9141_read_uint8() * 100 / 255;
-        data.success_cntr++;
     }
     else{data.can_calc_map = false;}
-    // OBD9141_delay(INBETWEEN_DELAY_MS);
+    OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Engine Coolant Temperature [°C]
-    res = OBD9141_get_current_pid(0x05, 1);
-    data.attempt_cntr++;
-    if (res){
+    if(get_pid(0x05, 1, &data)){
         data.coolant_temp = OBD9141_read_uint8() - 40;
-        data.success_cntr++;
     }
-    // OBD9141_delay(INBETWEEN_DELAY_MS);
+    OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // RPM
-    res = OBD9141_get_current_pid(0x0C, 2);
-    data.attempt_cntr++;
-    if (res){
+    if(get_pid(0x0C, 2, &data)){
         data.rpm = OBD9141_read_uint16() / 4;
-        data.success_cntr++;
     }
     else{data.can_calc_map = false;}
-    // OBD9141_delay(INBETWEEN_DELAY_MS);
+    OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Vehicle Speed [km/h]
-    res = OBD9141_get_current_pid(0x0D, 1);
-    data.attempt_cntr++;
-    if (res){
+    if(get_pid(0x0D, 1, &data)){
         data.speed = OBD9141_read_uint8();
-        data.success_cntr++;
     } else{data.speed = 0;} // Do not leave old speed data so you don't assume distance travelled but only record fuel consumed
-    // OBD9141_delay(INBETWEEN_DELAY_MS);
+    OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Intake Air Temperature [°C]
-    res = OBD9141_get_current_pid(0x0F, 1);
-    data.attempt_cntr++;
-    if (res){
+    if(get_pid(0x0F, 1, &data)){
         data.intake_temp = OBD9141_read_uint8() - 40;
-        data.success_cntr++;
-        data.read_iat = true; // differentiate no response from actual 0 degrees Celsius
     }
-    // else{data.can_calc_map = false;}
-    // OBD9141_delay(INBETWEEN_DELAY_MS);
+    OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Mass Air Flow [g/s]
-    res = OBD9141_get_current_pid(0x10, 2);
-    data.attempt_cntr++;
-    if (res){
+    if(get_pid(0x10, 2, &data)){
         data.maf = OBD9141_read_uint16() / 100.0f;
-        data.success_cntr++;
     }
-    // else{data.can_calc_map = false;}
-    // OBD9141_delay(INBETWEEN_DELAY_MS);
+    OBD9141_delay(INBETWEEN_DELAY_MS);
 
     // Throttle [%]
-    res = OBD9141_get_current_pid(0x11, 1);
-    data.attempt_cntr++;
-    if (res){
+    if(get_pid(0x11, 1, &data)){
         data.throttle = OBD9141_read_uint8() * 100 / 255;
-        data.success_cntr++;
     }
-    // else{data.can_calc_map = false;}
 
     if(data.success_cntr != data.attempt_cntr){
         ESP_LOGW(TAG, "success_cntr != attempt_cntr: %d/%d", data.success_cntr, data.attempt_cntr);
     }
-    printf("%d/%d\n", data.success_cntr, data.attempt_cntr);
+
     return data;
 }
-
-// // Get Volumetric Efficiency (for MAP, from VE LUT)
-// static float get_ve(uint16_t load, uint16_t rpm) {
-//     const int nx = sizeof(load_bp) / sizeof(load_bp[0]);
-//     const int ny = sizeof(rpm_bp) / sizeof(rpm_bp[0]);
-
-//     // Clamp rpm at table range
-//     if (rpm <= rpm_bp[0]) rpm = rpm_bp[0];     // clamp to 500 rpm
-//     if (rpm >= rpm_bp[ny -1 ]) rpm = rpm_bp[ny - 1]; // clamp to 7000 rpm
-
-//     // Clamp load at table range
-//     if (load <= load_bp[0]) load = load_bp[0];
-//     if (load >= load_bp[nx - 1]) load = load_bp[nx - 1];
-
-//     // Find load indices
-//     int ix = 0;
-//     while (ix < nx - 2 && load > load_bp[ix+1]) ix++;
-//     int ix1 = ix, ix2 = ix + 1;
-
-//     uint16_t x1 = load_bp[ix1];
-//     uint16_t x2 = load_bp[ix2];
-//     uint16_t dx = x2 - x1;
-//     uint16_t fx = (dx ? ((load - x1) * 1000) / dx : 0);
-
-//     // Find rpm indices
-//     int iy = 0;
-//     while (iy < ny - 2 && rpm > rpm_bp[iy + 1]) iy++;
-//     int iy1 = iy, iy2 = iy + 1;
-
-//     uint16_t y1 = rpm_bp[iy1];
-//     uint16_t y2 = rpm_bp[iy2];
-//     uint16_t dy = y2 - y1;
-//     uint16_t fy = (dy ? ((rpm - y1) * 1000) / dy : 0);
-
-//     // Get 4 surrounding VE values (x1000)
-//     uint32_t v11 = ve_table[iy1][ix1];
-//     uint32_t v12 = ve_table[iy1][ix2];
-//     uint32_t v21 = ve_table[iy2][ix1];
-//     uint32_t v22 = ve_table[iy2][ix2];
-
-//     // Bilinear interpolation
-//     uint32_t v1 = v11 + ((v12 - v11) * fx) / 1000;
-//     uint32_t v2 = v21 + ((v22 - v21) * fx) / 1000;
-//     uint32_t v  = v1  + ((v2  - v1 ) * fy) / 1000;
-
-//     return (float)v / 1000.0f;
-// }
-
-// Get Manifold Absolute Pressure (for fuel injector rate)
-// static uint32_t get_map(void) {
-//     uint32_t map = 0;
-//     if(!car_data.can_calc_map){ // We missed some data, must work around this
-//         // TODO: Calculate MAP if some data is missing
-//         //...
-//         return 65000; // Return 65kPa (4.35 bar delta across injector, +-4% error in injector rate)
-//     }
-//     else{ // All data gathered and valid
-//         /* Convert to appropriate SI units */
-//         float maf = car_data.maf * 0.001f;                                          // Mass air flow          [kg/s]
-//         uint16_t intake_temp = TO_KELVIN(car_data.intake_temp);                     // Intake air temp        [K]
-//         uint16_t N_intakes_s = (car_data.rpm * N_CYL) / 120;                        // Air intakes per second [-]
-//         if(!N_intakes_s){N_intakes_s++;}                                            // avoid dividing by 0
-//         float VE = get_ve(car_data.throttle, car_data.rpm);                         // Volumetric efficiency  [-]
-//         float V_cyl = V_CYL * 0.000001f;                                            // Cylinder volume        [m^3]
-
-//         map = (maf * R_AIR * intake_temp) / (VE * V_cyl * N_intakes_s);             // Manifold absolute pressure [Pa]
-//     }
-//     return map;
-// }
 
 static uint32_t get_map(uint16_t load, uint16_t rpm) {
     // Clamp rpm/load
@@ -399,8 +326,7 @@ static double get_pulse_fuel(uint32_t pulse_width, double fuel_coeff) {
 /* Get current page's data pack */
 
 static comms_data_pack_t get_comms_data_pack(void) {
-    comms_data_pack_t local_car_data = car_data;
-    return local_car_data;
+    return car_data;
 }
 
 static debug_fuel_data_pack_t get_debug_fuel_data_pack(void) {
@@ -411,18 +337,16 @@ static debug_fuel_data_pack_t get_debug_fuel_data_pack(void) {
     uint64_t local_avg_pulse_width = 0;
     // Copy locally to prevent overwrites
     if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
-        ets_printf("took mutex from debug fuel");
         local_stats = stats;
         local_car_data = car_data;
         local_local_pulse_count = local_pulse_count;
         local_avg_pulse_width = avg_pulse_width;
         xSemaphoreGive(fuel_data_mutex);
-        ets_printf("returned mutex from debug fuel");
     }
 
     data_pack.inst_fuel = local_stats.fuel_cons_inst;
     data_pack.avg_fuel = local_stats.fuel_cons_avg;
-    data_pack.coolant_temp = local_car_data.coolant_temp;
+    data_pack.dist_tr = local_stats.dist_tr;
     data_pack.cons_fuel = local_stats.fuel_consumed * 0.000001;       // [uL] to [L]
     data_pack.rpm = local_car_data.rpm;
     data_pack.speed = local_car_data.speed;
@@ -444,11 +368,9 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
     comms_data_pack_t local_car_data = {0};
     // Copy locally to prevent overwrites
     if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
-        ets_printf("took mutex from get_fuel_data_pack\n");
         local_stats = stats;
         local_car_data = car_data;
         xSemaphoreGive(fuel_data_mutex);
-        ets_printf("returned mutex from get_fuel_data_pack\n");
     }
     data_pack.inst_fuel = local_stats.fuel_cons_inst;
     data_pack.avg_fuel = local_stats.fuel_cons_avg;
@@ -456,9 +378,6 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
     data_pack.cons_fuel = local_stats.fuel_consumed * 0.000001;       // [uL] to [L]
     data_pack.fuel_last_6 = local_stats.fuel_cons_last_6 * 0.001;     // [uL] to [mL]
     data_pack.fuel_last_60 = local_stats.fuel_cons_last_60 * 0.001;   // [uL] to [mL]
-    //DEBUG
-    data_pack.dist_tr = local_stats.dist_tr;
-    data_pack.baro_pressure = bmp280_data.baro_pressure / 1000; // [Pa] to [kPa]
 
     return data_pack;
 }
@@ -492,7 +411,6 @@ void fuel_meter_task(void *pvParameters) {
     while (1) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(600));
         if(xSemaphoreTake(fuel_data_mutex, pdMS_TO_TICKS(100))){
-            ESP_LOGI(TAG, "Got fuel mutex from fuel_meter_task!");
         
 /* ---------------------------------- Gather data ----------------------------------------------- */
 
@@ -515,16 +433,22 @@ void fuel_meter_task(void *pvParameters) {
 
             double fuel_coeff = get_fuel_coeff(map);
 
+            // Get time period for cycle (to check for invalid values such as > 100% duty cycle)
+            uint32_t us_per_cycle = car_data.rpm < 300 ? 400 * 1000 : 120000 * 1000 / car_data.rpm; // [ms/cycle] to [us/cycle]
+            uint32_t max_pulse_width = us_per_cycle - INJECTOR_RESET_TIME;
+            uint16_t invalid_pulse_count = 0;
+
             // Fuel consumed during this 600 ms period
             double period_fuel_cons = 0; // in [uL] (microlitres)
             avg_pulse_width = 0; // Reset the avg every 600 ms
             for(size_t i = 0; i < local_pulse_count; i++){
+                if(local_pulse_buffer[i] >= max_pulse_width){invalid_pulse_count++; continue;}
                 double pulse_fuel = get_pulse_fuel(local_pulse_buffer[i], fuel_coeff); // [uL]
                 period_fuel_cons += pulse_fuel * N_CYL; // For all 4 cylinders, we assume the same pulse width across all cylinders in a given 4-stroke cycle
                 avg_pulse_width += local_pulse_buffer[i];
             }
             if(local_pulse_count){
-                avg_pulse_width /= local_pulse_count; // Avoid division by 0
+                avg_pulse_width /= (local_pulse_count - invalid_pulse_count); // Avoid division by 0
             }
 
             // Distance travelled during this 600 ms period
@@ -574,11 +498,9 @@ void fuel_meter_task(void *pvParameters) {
             index_60 = (index_60 + 1) % 60;
 /* ----------------------------------Fuel Meter data done ----------------------------------------------- */
             xSemaphoreGive(fuel_data_mutex);
-            ESP_LOGI(TAG, "Gave fuel mutex from fuel_meter_task!");
         }
         xTaskNotifyGive(current_page_task_handle);
         xTaskNotifyGive(display_task_handle);
-        ESP_LOGI(TAG, "Sent notifications to current_page_task and display_task!");
     }
 }
 
@@ -588,10 +510,8 @@ void current_page_task(void *pvParameters) {
         uint32_t notifyCount = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(700));
 
         if (!notifyCount) {
-            ESP_LOGW(TAG, "fuel_meter_task timeout");
             continue;
         }
-        ESP_LOGI(TAG, "Got notification from current_page_task!");
         if (strcmp(currently_open_page, "comms.html") == 0) {
             comms_page_handler();
         }
@@ -641,36 +561,38 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
     }
     size_t reinit_cnt = 0;
 
-    if(hd44780_switch_backlight(&lcd, true) != ESP_OK)          {goto i2c_fail;}
-    if(hd44780_clear(&lcd) != ESP_OK)                           {goto i2c_fail;}
+#define try_i2c(a) if(a != ESP_OK) {goto i2c_fail;}
+
+    try_i2c(hd44780_switch_backlight(&lcd, true));
+    try_i2c(hd44780_clear(&lcd));
     EventBits_t bits = xEventGroupGetBits(startup_event_group);
     if((bits & INITS_DONE) == 0){ // if inits not done yet (just started app, not reinitting display)
-        if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)                {goto i2c_fail;}
-        if(hd44780_puts(&lcd, "Initialising...") != ESP_OK)     {goto i2c_fail;}
-            xEventGroupWaitBits(startup_event_group, INITS_DONE, pdFALSE, pdFALSE, portMAX_DELAY);
-        if(hd44780_gotoxy(&lcd, 0, 1) != ESP_OK)                {goto i2c_fail;}
-        if(hd44780_puts(&lcd, "Done!") != ESP_OK)               {goto i2c_fail;}
-            vTaskDelay(pdMS_TO_TICKS(500));
-        if(hd44780_clear(&lcd) != ESP_OK)                       {goto i2c_fail;}
+        try_i2c(hd44780_gotoxy(&lcd, 0, 0));
+        try_i2c(hd44780_puts(&lcd, "Initialising..."))
+        xEventGroupWaitBits(startup_event_group, INITS_DONE, pdFALSE, pdFALSE, portMAX_DELAY);
+        try_i2c(hd44780_gotoxy(&lcd, 0, 1))
+        try_i2c(hd44780_puts(&lcd, "Done!"))
+        vTaskDelay(pdMS_TO_TICKS(500));
+        try_i2c(hd44780_clear(&lcd))
     }
 
     bits = xEventGroupGetBits(startup_event_group);
     if((bits & KWP_INIT) == 0){ // if KWP not initialised yet (just started app, not reinitting display)
-        if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)                {goto i2c_fail;}
-        if(hd44780_puts(&lcd, "Starting KWP...") != ESP_OK)     {goto i2c_fail;}
+        try_i2c(hd44780_gotoxy(&lcd, 0, 0))
+        try_i2c(hd44780_puts(&lcd, "Car connect..."))
         do{
-                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            if(hd44780_gotoxy(&lcd, 0, 1) != ESP_OK)            {goto i2c_fail;}
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            try_i2c(hd44780_gotoxy(&lcd, 0, 1))
             if(kwp_init_success){
-                if(hd44780_puts(&lcd, "Connected!") != ESP_OK)  {goto i2c_fail;}
+                try_i2c(hd44780_puts(&lcd, "Connected!"))
             }
             else{
-                if(hd44780_puts(&lcd, "Failed!") != ESP_OK)     {goto i2c_fail;}
-                    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-                    vTaskDelay(pdMS_TO_TICKS(1000));
-                if(hd44780_clear(&lcd) != ESP_OK)               {goto i2c_fail;}
-                if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)        {goto i2c_fail;}
-                if(hd44780_puts(&lcd, "Retrying...") != ESP_OK) {goto i2c_fail;}
+                try_i2c(hd44780_puts(&lcd, "Failed!"))
+                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                try_i2c(hd44780_clear(&lcd))
+                try_i2c(hd44780_gotoxy(&lcd, 0, 0))
+                try_i2c(hd44780_puts(&lcd, "Retrying..."))
             }
         }
         while(!kwp_init_success);

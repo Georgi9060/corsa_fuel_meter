@@ -7,7 +7,6 @@
 #define TO_KELVIN(celsius) ((celsius) + 273)
 #define P_BAROMETRIC_BASELINE 100000 // [Pa], 1 bar, assuming we're at sea level
 
-
 /* Car constants (2005 Opel Corsa, engine is Z12XEP) */ 
 
 #define V_Z12XEP 1229 // cubic cm 
@@ -25,7 +24,7 @@
 #define INJECTOR_DEADTIME 750           // [us], time taken for current buildup and magnetic force to overcome spring force and cause lifting of needle and non-zero fuel flow               (estimated)
 #define INJECTOR_RAMP_UP_TIME (INJECTOR_FULL_OPENING_TIME - INJECTOR_DEADTIME) // [us], time taken for fuel flow to ramp up from 0 to STATIC_FLOW_RATE                                       (estimated)
 #define INJECTOR_RAMP_DOWN_TIME INJECTOR_FULL_CLOSING_TIME                     // [us], same thing, using for consistency with ramp-up time                                                  (estimated)
-
+#define INJECTOR_RESET_TIME 3000        // [us], the time it takes for the injector to reset between spray events                                                                            (source: Andy Whittle, "Injector Duty Cycle, Pulse Width and Limits Related to RPM", YouTube)
 
 /* Manifold Absolute Pressure LUT */
 #define MAP_DEFAULT 60000 // [Pa], default fallback value if we can't get data for MAP, minimises error (4.4 bar delta across injector, +-4% error in injector fuel flow)
@@ -46,23 +45,5 @@ static const uint32_t map_table[N_RPM_BINS][N_LOAD_BINS] = {
     {30000, 50000, 65000, 85000,100000,100000}, // 6000 RPM
     {30000, 50000, 70000, 90000,100000,100000}  // 7000 RPM
 };
-
-// /* Volumetric Efficiency LUT */
-
-// // Breakpoints
-// static const uint16_t rpm_bp[]   = {500, 1000, 2000, 3000, 4000, 5000, 6000, 7000};
-// static const uint8_t  load_bp[]  = {0, 20, 40, 60, 80, 100};
-
-// // VE table: [rpm][load], values = VE * 1000
-// static const uint16_t ve_table[8][6] = {
-//     {250, 300, 350, 420, 480, 520},  // 500 rpm 
-//     {300, 380, 480, 580, 680, 730},  // 1000 rpm
-//     {320, 450, 600, 700, 800, 850},  // 2000 rpm
-//     {350, 500, 700, 800, 850, 890},  // 3000 rpm
-//     {360, 540, 760, 860, 900, 920},  // 4000 rpm
-//     {340, 500, 700, 820, 860, 880},  // 5000 rpm
-//     {300, 450, 650, 780, 820, 850},  // 6000 rpm
-//     {260, 420, 600, 720, 760, 780},  // 7000 rpm
-// };
 
 #endif

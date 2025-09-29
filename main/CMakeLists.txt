@@ -3,6 +3,7 @@ idf_component_register(SRCS
                         "fm_tasks.c"
                         "logs_to_web.c"
                         "main.c"
+                        "nvs.c"
                         "obd9141.c"
                         "set_up_wifi.c"
                         "websocket.c"

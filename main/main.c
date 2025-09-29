@@ -5,6 +5,7 @@
 #include "obd9141.h"
 #include "fm_tasks.h"
 #include "debug.h"
+#include "nvs.h"
 
 #include "esp_log.h"
 
@@ -20,16 +21,6 @@ extern char currently_open_page[32];
 static const char *TAG = "main";
 
 bool kwp_init_success = false;
-
-static void init_nvs(void) {
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-}
 
 void app_main() {
     // Inits
@@ -47,7 +38,6 @@ void app_main() {
     xTaskCreate(init_bmp280_sensor, "init_bmp280_task", 4096, NULL, 3, NULL);
     xTaskCreate(monitor_server_handle_task, "monitor_server_handle_task", 4096, NULL, 4, NULL);
 
-    // Start logging system
     init_logging_system();
 
     // Inits done

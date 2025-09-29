@@ -55,6 +55,12 @@ typedef struct fuel_stats_t {
     double fuel_cons_last_60;   // [uL]
 } fuel_stats_t;
 
+/* Getter/setter for fuel_stats */
+
+const fuel_stats_t *get_stats(void);
+
+void set_stats(const fuel_stats_t *set_stats);
+
 /* Inits */
 
 void init_pulse_width_gpio(void);

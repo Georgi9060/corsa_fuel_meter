@@ -151,7 +151,7 @@ button:hover {
 .switch {
   position: relative;
   display: inline-block;
-  width: 50px;
+  width: 36px;
   height: 24px;
 }
 .switch input { display: none; }
@@ -173,5 +173,9 @@ button:hover {
   border-radius: 50%;
 }
 input:checked + .slider { background-color: #fa0; }
-input:checked + .slider:before { transform: translateX(26px); }
+input:checked + .slider:before { transform: translateX(13px); }
 
+
+span{
+  font-size: 1.5rem;
+}

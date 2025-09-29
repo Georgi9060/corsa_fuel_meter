@@ -285,9 +285,21 @@ static esp_err_t handle_ws_req(httpd_req_t *req) {
     if (strcmp(cmd_type->valuestring, "page_open") == 0) {
         set_open_page(root);
     }
-    // else if (strcmp(cmd_type->valuestring, "filler") == 0) {
-    //     do_something();
-    // }
+    else if (strcmp(cmd_type->valuestring, "load_fuel_data") == 0) {
+        load_fuel_data();
+    }
+    else if (strcmp(cmd_type->valuestring, "save_add_fuel_data") == 0) {
+        save_add_fuel_data();
+    }
+    else if (strcmp(cmd_type->valuestring, "save_ovw_fuel_data") == 0) {
+        save_ovw_fuel_data();
+    }
+    else if (strcmp(cmd_type->valuestring, "clear_fuel_data") == 0) {
+        clear_fuel_data();
+    }
+    else if (strcmp(cmd_type->valuestring, "delete_fuel_data") == 0) {
+        delete_fuel_data();
+    }
 
     cJSON_Delete(root);
     free(buf);
