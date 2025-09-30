@@ -111,6 +111,12 @@ void load_fuel_data(void) {
     set_stats(&fuel_stats);
 }
 
+void save_ovw_fuel_data(void) {
+    const fuel_stats_t *fuel_stats = get_stats();
+    set_fuel_consumed(fuel_stats->fuel_consumed);
+    set_dist_tr(fuel_stats->dist_tr);
+}
+
 void save_add_fuel_data(void) {
     const fuel_stats_t *fuel_stats = get_stats();
     double fuel_consumed = get_fuel_consumed();
@@ -119,12 +125,6 @@ void save_add_fuel_data(void) {
     dist_tr += fuel_stats->dist_tr;
     set_fuel_consumed(fuel_consumed);
     set_dist_tr(dist_tr);
-}
-
-void save_ovw_fuel_data(void) {
-    const fuel_stats_t *fuel_stats = get_stats();
-    set_fuel_consumed(fuel_stats->fuel_consumed);
-    set_dist_tr(fuel_stats->dist_tr);
 }
 
 void clear_fuel_data(void) {
@@ -140,7 +140,6 @@ void clear_fuel_data(void) {
 }
 
 void delete_fuel_data(void) {
-    clear_fuel_data();
     set_fuel_consumed(0);
     set_dist_tr(0);
 }

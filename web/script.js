@@ -260,12 +260,12 @@ btnLoad.addEventListener("click", () => {
 ws.send(JSON.stringify({ type: "load_fuel_data" }));
 });
 
-btnSaveAdd.addEventListener("click", () => {
-ws.send(JSON.stringify({ type: "save_add_fuel_data" }));
-});
-
 btnSaveOvw.addEventListener("click", () => {
 ws.send(JSON.stringify({ type: "save_ovw_fuel_data" }));
+});
+
+btnSaveAdd.addEventListener("click", () => {
+ws.send(JSON.stringify({ type: "save_add_fuel_data" }));
 });
 
 btnClear.addEventListener("click", () => {

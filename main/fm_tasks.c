@@ -385,19 +385,16 @@ static fuel_data_pack_t get_fuel_data_pack(void) {
 /* Page handlers */
 
 static void comms_page_handler(void) {
-    ets_printf("entered comms_page_handler\n");
     comms_data_pack_t data = get_comms_data_pack();
     send_comms_data_pack(data);
 }
 
 static void debug_fuel_page_handler(void) {
-    ets_printf("entered debug_fuel_page_handler\n");
     debug_fuel_data_pack_t data = get_debug_fuel_data_pack();
     send_debug_fuel_data_pack(data);
 }
 
 static void fuel_page_handler(void) {
-    ets_printf("entered ffuel_page_handler\n");
     fuel_data_pack_t data = get_fuel_data_pack();
     send_fuel_data_pack(data);
 }
