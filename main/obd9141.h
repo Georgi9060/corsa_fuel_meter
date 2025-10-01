@@ -1,7 +1,17 @@
-/*
- *  Copyright (c) 2015, Ivor Wanders
- *  MIT License, see the LICENSE.md file in the root folder.
-*/
+ /*
+ * OBD9141_C_Core - C translation of the OBD9141 Arduino library
+ *
+ * Original library: OBD9141 by Ivor Wanders https://github.com/iwanders/OBD9141
+ * Original library licensed under MIT License.
+ *
+ * Translation and adaptation to C / ESP-IDF by Georgi Georgiev, 2025.
+ * Framework-agnostic template functions included for portability to other frameworks.
+ * 
+ * Copyright (c) 2015, Ivor Wanders
+ * Copyright (c) 2025, Georgi Georgiev
+ *
+ * MIT License, see the LICENSE.md file in the root folder.
+ */
 
 #ifndef OBD9141_H
 #define OBD9141_H
@@ -26,7 +36,7 @@ void OBD9141_uart_init(void);
 // Change this function's contents to your framework's equivalent UART deinit
 void OBD9141_uart_deinit(void);
 // Change this function's contents to your framework's equivalent UART check
-// bool OBD9141_uart_is_driver_installed(OBD_SERIAL_DATA_TYPE serial_port);
+bool OBD9141_uart_is_driver_installed(OBD_SERIAL_DATA_TYPE serial_port);
 // Change this function's contents to your framework's equivalent UART write function
 int  OBD9141_uart_write_bytes(OBD_SERIAL_DATA_TYPE serial_port, void *b, size_t len);
 // Change this function's contents to your framework's equivalent UART read function
@@ -35,9 +45,6 @@ int  OBD9141_uart_read_bytes(OBD_SERIAL_DATA_TYPE serial_port, void *b, size_t l
 void OBD9141_set_pin_mode(int pin, int mode);
 // Change this function's contents to your framework's equivalent GPIO level function
 void OBD9141_set_pin_level(int pin, int level);
-// Change this function's contents to your framework's equivalent UART driver check function
-bool OBD9141_uart_is_driver_installed(OBD_SERIAL_DATA_TYPE serial_port);
-
 
 // Use to enable debug print logs.
 // #define OBD9141_DEBUG

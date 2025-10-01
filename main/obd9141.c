@@ -1,3 +1,18 @@
+ /*
+ * OBD9141_C_Core - C translation of the OBD9141 Arduino library
+ *
+ * Original library: OBD9141 by Ivor Wanders https://github.com/iwanders/OBD9141
+ * Original library licensed under MIT License.
+ *
+ * Translation and adaptation to C / ESP-IDF by Georgi Georgiev, 2025.
+ * Framework-agnostic template functions included for portability to other frameworks.
+ * 
+ * Copyright (c) 2015, Ivor Wanders
+ * Copyright (c) 2025, Georgi Georgiev
+ *
+ * MIT License, see the LICENSE.md file in the root folder.
+ */
+
 #include "obd9141.h"
 
 static OBD9141_t obd9141;
