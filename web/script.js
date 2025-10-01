@@ -183,8 +183,9 @@ ws.onmessage = (event) => {
         parsed = null;
     }
 
-    if (parsed && parsed.type === "filler") {
-        // Do stuff
+    if (parsed && parsed.type === "stored_vals") {
+        document.getElementById('fuelValue').textContent = Number(parsed.fuel).toFixed(2);
+        document.getElementById('distanceValue').textContent = Number(parsed.dist).toFixed(1);
 
     } else if (parsed && parsed.type === "filler2") {
         // Do other stuff

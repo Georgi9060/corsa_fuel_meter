@@ -120,8 +120,8 @@ inline bool get_pid(uint8_t pid, uint8_t return_length, comms_data_pack_t *data)
 }
 
 /* Get data for fuel meter from KWP comms */
+
 static comms_data_pack_t get_car_data(void) {
-    bool res;
     comms_data_pack_t data = car_data; // Takes the last period's data (if any requests fail, we fall back to the last valid data, and if it's the first time, we just assume 0)
     data.can_calc_map = true;
     data.attempt_cntr = 0;

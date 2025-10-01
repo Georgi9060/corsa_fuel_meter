@@ -162,6 +162,7 @@ button:hover {
   background-color: #ccc;
   transition: .4s;
   border-radius: 24px;
+  min-width: 36px; 
 }
 .slider:before {
   position: absolute;
@@ -173,7 +174,9 @@ button:hover {
   border-radius: 50%;
 }
 input:checked + .slider { background-color: #fa0; }
-input:checked + .slider:before { transform: translateX(13px); }
+input:checked + .slider:before {
+  left: calc(100% - 21px);
+}
 
 
 span{
