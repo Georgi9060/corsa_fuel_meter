@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ * Copyright (c) 2025 Georgi Georgiev
+ * See LICENSE file for full license text.
+ */
+
 #ifndef __LOGS_TO_WEB
 #define __LOGS_TO_WEB
 

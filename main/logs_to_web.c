@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ * Copyright (c) 2025 Georgi Georgiev
+ * See LICENSE file for full license text.
+ */
+
 #include "logs_to_web.h"
 
 extern httpd_handle_t server;
