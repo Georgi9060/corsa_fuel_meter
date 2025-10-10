@@ -1,6 +1,6 @@
 # ESP32 Corsa Fuel Meter
 
-This project is a hardware + software solution for **real-time fuel consumption and engine monitoring** using an **ESP32** microcontroller. It combines **OBD-II ISO9141-2/KWP2000** communications for engine/car data with injector pulse width measurements to calculate live fuel usage. A web interface and LCD display allow easy access to live data. Originally built and tested on a **2005 Opel Corsa C**, but adaptable to many 1996–2004 gasoline MPI cars using ISO9141-2/KWP protocols.
+This project is a hardware + software solution for **real-time petrol fuel consumption and engine monitoring** using an **ESP32** microcontroller. It combines **OBD-II ISO9141-2/KWP2000** communications for engine/car data with injector pulse width measurements to calculate live fuel usage. A web interface and LCD display allow easy access to live data. Originally built and tested on a **2005 Opel Corsa C**, but adaptable to many 1996–2004 gasoline MPI cars using ISO9141-2/KWP protocols.
 
 ## Features
 
@@ -100,7 +100,9 @@ Components:
 - ESP32-WROOM-32 DevKit V1;
 - HD44780 1602 LCD Display with PCF8574T I2C backpack;
 - BMP280 Digital Pressure Sensor;
-- Wiring and connectors, shown in [diagrams/photos](./docs/hardware/).
+- Wiring and connections, shown in [diagrams/photos](./docs/hardware/).
+
+![Physical project layout](./docs/hardware/physical_setup.png)
 
 ## Software
 
@@ -140,9 +142,13 @@ http://192.168.4.1/index.html
 
 ## Compatibility
 
--  **Tested:** Opel/Vauxhall Corsa C (2005);
+-  **Tested:** Opel/Vauxhall Corsa C (2005), engine code Z12XEP;
 -  **Expected support:** 1996–2004 gasoline MPI vehicles using ISO9141-2 or KWP2000 OBD-II;
 -  **Not supported:** Diesel engines, direct injection petrol, CAN-only vehicles (2008+ EU).
+
+## Screenshots and Photos
+
+(screenshot of each page of the website with live correct data, photo of the LCD display in the 3D box)
 
 ## License
 
