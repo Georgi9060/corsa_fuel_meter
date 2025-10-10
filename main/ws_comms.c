@@ -167,6 +167,7 @@ void save_add_fuel_data(void) {
     set_fuel_consumed(fuel_consumed);
     set_dist_tr(dist_tr);
     send_stored_vals();
+    clear_fuel_data(); // Clear local data to prevent multiple additions of the same data
 }
 
 void clear_fuel_data(void) {

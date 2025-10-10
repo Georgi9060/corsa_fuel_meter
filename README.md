@@ -106,7 +106,7 @@ Components:
 
 ## Software
 
-The application is developed in ESP-IDF and provides:
+The application is developed in ESP-IDF v5.5.1 and provides:
 
 - OBD-II Communications over ISO9141-2/KWP, as per the [OBD9141_C_Core ](https://github.com/Georgi9060/OBD9141_C_Core) library;
 - Fuel injector signal processing through GPIO interrupts;

@@ -241,6 +241,7 @@ static double get_fuel_coeff(uint32_t map) {
     esp_err_t err = bmp280_read_float(&bmp280, &bmp280_data.amb_temp, &bmp280_data.baro_pressure, NULL);
     if (err == ESP_OK){
         p_barometric = (uint32_t)bmp280_data.baro_pressure;
+        // (0.52 ~ 1.05 bar on any drivable road in the world)
     }
     else{
         ESP_LOGE(TAG, "Temperature/pressure reading failed\n");
@@ -249,14 +250,15 @@ static double get_fuel_coeff(uint32_t map) {
     }
     
     double p_ratio = p_barometric / P_BAROMETRIC_BASELINE;
+    uint32_t map_corrected = map * p_ratio; // MAP scales proportionally with barometric pressure (if baro = 50 [kPa], MAP at idle @ 100 [kPa] is 30 [kPa], then map at idle @ 50 [kPa] will be (30 * (50/100) = 15 [kPa])
 
-    uint32_t p_across_inj = FUEL_RAIL_PRESSURE + (p_barometric - map);  // Current pressure across injector, can vary between 4.0 bar @ WOT and 4.7 bar @ idle
-    double deltap_coeff = sqrt(p_across_inj / STATIC_FLOW_PRESSURE);    // Coeffcient for static fuel flow rate @ measured pressure across injector, based on delta-P square law
+    uint32_t p_across_inj = FUEL_RAIL_PRESSURE + (p_barometric - map_corrected);  // Current pressure across injector, can vary between 4.0 bar @ WOT and 4.7 bar @ idle
+    double deltap_coeff = sqrt(p_across_inj / STATIC_FLOW_PRESSURE);    // Coefficient for static fuel flow rate @ measured pressure across injector, based on delta-P square law
 
-    double coeff = STATIC_FLOW_RATE * deltap_coeff    * p_ratio;
-    // [uL/ms]   = [uL/ms]          * (1.00 ~ 1.08)   * (0.52 ~ 1.05)
-    //  coeff    = flow @ 4.0 bar   * (4.0 ~ 4.7 bar) * (0.52 ~ 1.05 bar)
-    //                        pressure across injector  atmospheric pressure
+    double coeff = STATIC_FLOW_RATE * deltap_coeff;
+    // [uL/ms]   = [uL/ms]          * (1.00 ~ 1.08)
+    //  coeff    = flow @ 4.0 bar   * (4.0 ~ 4.7 bar)
+    //                        pressure across injector
     return coeff;
 }
 
@@ -618,7 +620,7 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
     {   
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         reinit_cnt++;
-        if(reinit_cnt >= 120){responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
+        if(reinit_cnt >= 600){responsive_lcd = false; goto i2c_fail;} // Periodic reinit because data on display gets corrupted over time
         char line1[32] = {0};
         char line2[32] = {0};
         fuel_stats_t local_stats = {0};
