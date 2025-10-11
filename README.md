@@ -108,7 +108,7 @@ Components:
 
 The application is developed in ESP-IDF v5.5.1 and provides:
 
-- OBD-II Communications over ISO9141-2/KWP, as per the [OBD9141_C_Core ](https://github.com/Georgi9060/OBD9141_C_Core) library;
+- OBD-II Communications over ISO9141-2/KWP, as per the [OBD9141_C_Core](https://github.com/Georgi9060/OBD9141_C_Core) library;
 - Fuel injector signal processing through GPIO interrupts;
 - WebSocket server for live data streaming;
 - Web dashboard (HTML/JS/CSS, served from ESP32 flash);
@@ -148,7 +148,12 @@ http://192.168.4.1/index.html
 
 ## Screenshots and Photos
 
-(screenshot of each page of the website with live correct data, photo of the LCD display in the 3D box)
+![LCD Display](./docs/hardware/LCD_display.jpg)
+![fuel_page](./docs/software/fuel_page.jpg)
+![fuel_page_with_price](./docs/software/fuel_page_with_price.jpg)
+<!-- ![debug_fuel_page](./docs/software/debug_fuel_page.jpg)
+![comms_page](./docs/software/comms_page.jpg) -->
+See more screenshots [here](./docs/software/);
 
 ## License
 
