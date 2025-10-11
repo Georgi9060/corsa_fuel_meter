@@ -150,6 +150,7 @@ http://192.168.4.1/index.html
 
 ![LCD Display](./docs/hardware/LCD_display.jpg)
 ![fuel_page](./docs/software/fuel_page.jpg)
+
 See more screenshots [here](./docs/software/).
 
 ## License
