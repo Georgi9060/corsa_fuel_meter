@@ -87,7 +87,7 @@ The fuel injected during the pulse is the area under the graph - consisting of t
 
 The calculated fuel amount per injector pulse is added to a sum for a given period (600 ms), and in this way, having both the distance travelled and fuel consumed, we can calculate instantaneous (for the last 600 ms) as well as average (accumulated distance/fuel since start of measuring period) fuel consumption with every update.
 
-## Hardware Setup
+## Hardware
 
 The system is built around an ESP32 running ESP-IDF, interfacing with:
 
@@ -146,14 +146,11 @@ http://192.168.4.1/index.html
 -  **Expected support:** 1996–2004 gasoline MPI vehicles using ISO9141-2 or KWP2000 OBD-II;
 -  **Not supported:** Diesel engines, direct injection petrol, CAN-only vehicles (2008+ EU).
 
-## Screenshots and Photos
+## Photos and screenshots
 
 ![LCD Display](./docs/hardware/LCD_display.jpg)
 ![fuel_page](./docs/software/fuel_page.jpg)
-![fuel_page_with_price](./docs/software/fuel_page_with_price.jpg)
-<!-- ![debug_fuel_page](./docs/software/debug_fuel_page.jpg)
-![comms_page](./docs/software/comms_page.jpg) -->
-See more screenshots [here](./docs/software/);
+See more screenshots [here](./docs/software/).
 
 ## License
 
