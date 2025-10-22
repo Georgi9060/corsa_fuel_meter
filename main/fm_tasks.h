@@ -42,7 +42,7 @@
 #define INITS_DONE BIT0
 #define KWP_INIT   BIT1
 
-
+#define PRICE_DEFAULT 2.40 // [BGN] Price per litre of fuel
 
 #define INBETWEEN_DELAY_MS 1
 #define MAX_PULSES 64 // Max count of pulses per 500 ms, @ 12000 RPM you have 100 injections/sec or 50 injections per 500 ms, so 64 is way more than I will ever need (Corsa RPM limit 6-7k RPM)
@@ -78,6 +78,10 @@ typedef struct fuel_stats_t {
 const fuel_stats_t *get_stats(void);
 
 void set_stats(const fuel_stats_t *set_stats);
+
+/* Setter for fuel_price_per_litre */
+
+void set_fuel_price_per_litre(float set_fuel_price_per_litre);
 
 /* Inits */
 

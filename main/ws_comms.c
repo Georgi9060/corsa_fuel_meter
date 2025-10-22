@@ -132,7 +132,17 @@ void set_open_page(cJSON *root) {
     }
     strcpy(currently_open_page, page->valuestring);
     if(strcmp(currently_open_page, "fuel.html") == 0){send_stored_vals();} // Load stored vals along with page load
-    ESP_LOGI(TAG,"Currently open page: %s", currently_open_page);
+    ESP_LOGI(TAG, "Currently open page: %s", currently_open_page);
+}
+
+void set_fuel_price(cJSON *root) {
+    cJSON *price = cJSON_GetObjectItem(root, "price");
+
+    if(!cJSON_IsNumber(price)){
+        ESP_LOGE(TAG, "'price' is not a number!"); return;
+    }
+    set_fuel_price_per_litre(price->valuedouble);
+    ESP_LOGI(TAG, "Price updated to: %d", price->valuedouble);
 }
 
 void load_fuel_data(void) {

@@ -30,20 +30,21 @@ TaskHandle_t display_task_handle = NULL;
 
 
 extern bool kwp_init_success;
-SemaphoreHandle_t fuel_data_mutex = NULL;          // Protects fuel_meter_task and data sending tasks from mutual access
+SemaphoreHandle_t fuel_data_mutex = NULL;             // Protects fuel_meter_task and data sending tasks from mutual access
 
 /* Fuel meter data */
-static fuel_stats_t stats = {0};                // Stores runtime fuel statistics
-static uint16_t local_pulse_count = 0;         // Stores the pulse count accumulated every 600 ms
-static uint64_t avg_pulse_width = 0;          // Stores the average pulse width calculated every 600 ms
-static comms_data_pack_t car_data = {0};     // Stores the retrieved data from KWP comms, accessed by multiple tasks
-static bmp280_data_t bmp280_data = {0};     // Stores BMP280 measurements
+static fuel_stats_t stats = {0};                   // Stores runtime fuel statistics
+static uint16_t local_pulse_count = 0;            // Stores the pulse count accumulated every 600 ms
+static uint64_t avg_pulse_width = 0;             // Stores the average pulse width calculated every 600 ms
+static comms_data_pack_t car_data = {0};        // Stores the retrieved data from KWP comms, accessed by multiple tasks
+static bmp280_data_t bmp280_data = {0};        // Stores BMP280 measurements
 
-char currently_open_page[32] = {0};       // used to indicate which type of packet to prepare & send
-static i2c_dev_t pcf8574;                // i2c device handle for the backpack
-static bmp280_t bmp280;                 // i2c device handle for the BMP280 sensor
-static bool responsive_lcd = false;    // Flag to show whether the backpack/LCD is responsive
-static bool responsive_bmp = false;   // Flag to show whether the BMP280 is responsive
+char currently_open_page[32] = {0};                 // used to indicate which type of packet to prepare & send
+static float fuel_price_per_litre = PRICE_DEFAULT; // stores the fuel price per litre (in BGN), updated from webpage
+static i2c_dev_t pcf8574;                         // i2c device handle for the backpack
+static bmp280_t bmp280;                          // i2c device handle for the BMP280 sensor
+static bool responsive_lcd = false;             // Flag to show whether the backpack/LCD is responsive
+static bool responsive_bmp = false;            // Flag to show whether the BMP280 is responsive
 
 
 static const char *TAG = "fm_tasks";
@@ -86,6 +87,14 @@ const fuel_stats_t *get_stats(void) {
 void set_stats(const fuel_stats_t *set_stats) {
     if(set_stats){
         stats = *set_stats;
+    }
+}
+
+/* Setter for fuel_price_per_litre */
+
+void set_fuel_price_per_litre(const float set_fuel_price_per_litre) {
+    if(set_fuel_price_per_litre > 0){
+        fuel_price_per_litre = set_fuel_price_per_litre;
     }
 }
 
@@ -634,8 +643,8 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-        snprintf(line1, sizeof(line1), "Avg:%-5.1fL/100km", local_stats.fuel_cons_avg);
-        snprintf(line2, sizeof(line2), "Inst:%-2dL T:%3d%cC", (int)local_stats.fuel_cons_inst, local_car_data.coolant_temp, I2C_LCD1602_CHARACTER_DEGREE);
+        snprintf(line1, sizeof(line1), "Avg:%-5.1fP:%5.2f", local_stats.fuel_cons_avg, local_stats.fuel_consumed * fuel_price_per_litre);
+        snprintf(line2, sizeof(line2), "Ins:%-5.1fT:%3d%cC", local_stats.fuel_cons_inst, local_car_data.coolant_temp, I2C_LCD1602_CHARACTER_DEGREE);
 #pragma GCC diagnostic pop
 
         if(hd44780_gotoxy(&lcd, 0, 0) != ESP_OK)                {goto i2c_fail;}

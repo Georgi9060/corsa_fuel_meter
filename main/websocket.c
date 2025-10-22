@@ -303,6 +303,9 @@ static esp_err_t handle_ws_req(httpd_req_t *req) {
     if (strcmp(cmd_type->valuestring, "page_open") == 0) {
         set_open_page(root);
     }
+    else if(strcmp(cmd_type->valuestring, "fuel_price") == 0) {
+        set_fuel_price(root);
+    }
     else if (strcmp(cmd_type->valuestring, "load_fuel_data") == 0) {
         load_fuel_data();
     }

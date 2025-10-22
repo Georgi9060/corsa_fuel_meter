@@ -76,6 +76,8 @@ void send_fuel_data_pack(fuel_data_pack_t data);
 
 void set_open_page(cJSON *root);
 
+void set_fuel_price(cJSON *root);
+
 void load_fuel_data(void);
 
 void save_add_fuel_data(void);

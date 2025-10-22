@@ -276,15 +276,15 @@ const btnClear      = document.getElementById("btnClear");
 const btnDelete     = document.getElementById("btnDelete");
 
 btnLoad.addEventListener("click", () => {
-ws.send(JSON.stringify({ type: "load_fuel_data" }));
+    ws.send(JSON.stringify({ type: "load_fuel_data" }));
 });
 
 btnSaveOvw.addEventListener("click", () => {
-ws.send(JSON.stringify({ type: "save_ovw_fuel_data" }));
+    ws.send(JSON.stringify({ type: "save_ovw_fuel_data" }));
 });
 
 btnSaveAdd.addEventListener("click", () => {
-ws.send(JSON.stringify({ type: "save_add_fuel_data" }));
+    ws.send(JSON.stringify({ type: "save_add_fuel_data" }));
 });
 
 btnClear.addEventListener("click", () => {
@@ -292,39 +292,54 @@ btnClear.addEventListener("click", () => {
 });
 
 btnDelete.addEventListener("click", () => {
-// Custom confirmation dialog
-const overlay = document.createElement("div");
-overlay.style.cssText =
-    "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);" +
-    "display:flex;align-items:center;justify-content:center;z-index:9999;";
+    // Custom confirmation dialog
+    const overlay = document.createElement("div");
+    overlay.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);" +
+        "display:flex;align-items:center;justify-content:center;z-index:9999;";
 
-const box = document.createElement("div");
-box.style.cssText =
-    "background:#111;padding:20px;border-radius:8px;text-align:center;max-width:300px;";
+    const box = document.createElement("div");
+    box.style.cssText =
+        "background:#111;padding:20px;border-radius:8px;text-align:center;max-width:300px;";
 
-const msg = document.createElement("p");
-msg.textContent = "Are you sure you want to delete accumulated fuel data?";
-msg.style.marginBottom = "15px";
+    const msg = document.createElement("p");
+    msg.textContent = "Are you sure you want to delete accumulated fuel data?";
+    msg.style.marginBottom = "15px";
 
-const btnYes = document.createElement("button");
-btnYes.textContent = "Yes";
-btnYes.style.cssText = "background:green;color:white;margin:0 10px;padding:5px 15px;";
-btnYes.onclick = () => {
-    ws.send(JSON.stringify({ type: "delete_fuel_data" }));
-    document.body.removeChild(overlay);
-};
+    const btnYes = document.createElement("button");
+    btnYes.textContent = "Yes";
+    btnYes.style.cssText = "background:green;color:white;margin:0 10px;padding:5px 15px;";
+    btnYes.onclick = () => {
+        ws.send(JSON.stringify({ type: "delete_fuel_data" }));
+        document.body.removeChild(overlay);
+    };
 
-const btnNo = document.createElement("button");
-btnNo.textContent = "No";
-btnNo.style.cssText = "background:red;color:white;margin:0 10px;padding:5px 15px;";
-btnNo.onclick = () => {
-    document.body.removeChild(overlay);
-};
+    const btnNo = document.createElement("button");
+    btnNo.textContent = "No";
+    btnNo.style.cssText = "background:red;color:white;margin:0 10px;padding:5px 15px;";
+    btnNo.onclick = () => {
+        document.body.removeChild(overlay);
+    };
 
-box.appendChild(msg);
-box.appendChild(btnYes);
-box.appendChild(btnNo);
-overlay.appendChild(box);
-document.body.appendChild(overlay);
+    box.appendChild(msg);
+    box.appendChild(btnYes);
+    box.appendChild(btnNo);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
 });
 
+// Update fuel price on ESP32 side
+ priceInput.addEventListener("change", () => {
+    const newPrice = parseFloat(priceInput.value);
+
+    const payload = {
+        type: "fuel_price",
+        price: newPrice
+    };
+
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+    } else {
+        console.warn("WebSocket not open — cannot send fuel_price");
+    }
+});
