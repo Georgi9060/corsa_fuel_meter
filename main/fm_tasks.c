@@ -643,7 +643,7 @@ i2c_fail: // We lost connection to the backpack/display; reinit and start over
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-        snprintf(line1, sizeof(line1), "Avg:%-5.1fP:%5.2f", local_stats.fuel_cons_avg, local_stats.fuel_consumed * fuel_price_per_litre);
+        snprintf(line1, sizeof(line1), "Avg:%-5.1fP:%5.2f", local_stats.fuel_cons_avg, local_stats.fuel_consumed * 0.000001 * fuel_price_per_litre); // [uL] to [L]
         snprintf(line2, sizeof(line2), "Ins:%-5.1fT:%3d%cC", local_stats.fuel_cons_inst, local_car_data.coolant_temp, I2C_LCD1602_CHARACTER_DEGREE);
 #pragma GCC diagnostic pop
 
